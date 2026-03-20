@@ -43,4 +43,4 @@ npm run dev
 ```
 
 ## Model Weights
-Download from [Google Drive](#) and place in `end_logic/weights/`.
+Download from [Google Drive](#) and place in `end_logic/weights/`. or just put ur desired model pt in the main and it'll be downloaded in the firt execution.
