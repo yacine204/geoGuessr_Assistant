@@ -1,4 +1,4 @@
-# GeoGuessr Location Assistant
+# GeoGuessr Location Assistant (still in progress)
 
 Street-level image analysis pipeline that extracts geographic clues from images
 (road signs, architecture, language) using YOLOv8, OCR, and OpenStreetMap
