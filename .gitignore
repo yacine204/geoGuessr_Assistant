@@ -2,3 +2,5 @@ geo_venv/
 __pycache__/
 .env
 yolo_pt's/
+tests/
+*.png
