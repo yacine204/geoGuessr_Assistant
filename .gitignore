@@ -2,6 +2,7 @@ geo_venv/
 __pycache__/
 .env
 tests/
+tests2/
 *.png
 detections/
 yolo_pts/
@@ -9,3 +10,4 @@ yolo_pts/
 *.png
 datasets/
 dataset.zip
+labels_v2.zip

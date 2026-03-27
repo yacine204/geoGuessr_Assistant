@@ -8,6 +8,6 @@ val:
 
 nc: 3
 names:
-  0: mutcd
-  1: vienna
-  2: ambiguous
+  - mutcd
+  - vienna
+  - ambiguous

@@ -2,9 +2,9 @@ from ultralytics import YOLO
 from helpers.file_parsing import image_yolo_parsing
 import os
 
-model = YOLO("yolo_pts/yolov8l.pt")
+model = YOLO("yolo_pts/best.pt")
 
-image_test = '/home/yacine/Desktop/codes/geoGussr-Assistant/tests/archive/compressed_dataset/Aland/canvas_1629777324.jpg'
+image_test = '/home/yacine/Desktop/codes/geoGussr-Assistant/tests2/mutcd_1.gif'
 
 results = image_yolo_parsing(image_test, model)
 
