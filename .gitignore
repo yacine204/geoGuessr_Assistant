@@ -7,3 +7,5 @@ detections/
 yolo_pts/
 
 *.png
+datasets/
+dataset.zip
