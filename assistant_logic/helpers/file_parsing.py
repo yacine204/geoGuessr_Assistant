@@ -7,7 +7,8 @@ def image_yolo_parsing(image_file_path:str, model:YOLO):
         save=False,
         save_conf=True,
         conf=0.5,
-        stream=True 
+        stream=True,
+     
     )
     all_results = []
     for result in results:
@@ -18,6 +19,7 @@ def image_yolo_parsing(image_file_path:str, model:YOLO):
             bbox = box.xyxy[0].tolist()
             print(f"Detected: {class_name} | conf: {confidence:.2f} | box: {bbox}")
 
+        result.show()
         all_results.append(result)
 
     return all_results
