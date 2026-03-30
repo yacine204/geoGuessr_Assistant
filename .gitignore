@@ -5,9 +5,7 @@ tests/
 tests2/
 *.png
 detections/
-yolo_pts/
 
-*.png
 datasets/
 dataset.zip
 labels_v2.zip
