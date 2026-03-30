@@ -1,16 +1,18 @@
 from ultralytics import YOLO
+from data_types.road_sign_type import SignResult
 
-
-def image_yolo_parsing(image_file_path:str, model:YOLO):
+def detect_signs(image_path:str, model:YOLO)->list[SignResult]:
     results = model(
-        source=image_file_path,
+        source=image_path,
         save=False,
         save_conf=True,
         conf=0.5,
         stream=True,
      
     )
-    all_results = []
+    print("resutls:\n")
+    all_results: list[SignResult] = []
+    result: SignResult
     for result in results:
         for box in result.boxes:
             class_id = int(box.cls.item())

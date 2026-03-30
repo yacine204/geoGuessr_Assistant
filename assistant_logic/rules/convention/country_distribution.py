@@ -1,4 +1,4 @@
-from countries_by_regions import REGIONS
+from assistant_logic.rules.countries_by_regions import REGIONS
 
 CONVENTIONS = {
     "vienna": (
