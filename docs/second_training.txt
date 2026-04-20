@@ -1,0 +1,63 @@
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-28T14:46:56.136076Z","iopub.execute_input":"2026-03-28T14:46:56.136547Z","iopub.status.idle":"2026-03-28T14:46:56.147346Z","shell.execute_reply.started":"2026-03-28T14:46:56.136513Z","shell.execute_reply":"2026-03-28T14:46:56.146374Z"}}
+import pandas as pd
+import os
+
+print(os.listdir('/kaggle/input/datasets/yacinebenaroussi/vienna-vs-mutcd-2'))
+
+
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-28T15:06:36.091226Z","iopub.execute_input":"2026-03-28T15:06:36.091529Z","iopub.status.idle":"2026-03-28T15:06:36.098910Z","shell.execute_reply.started":"2026-03-28T15:06:36.091504Z","shell.execute_reply":"2026-03-28T15:06:36.098125Z"}}
+import yaml
+import os
+
+base = '/kaggle/input/datasets/yacinebenaroussi/vienna-vs-mutcd-2'
+
+config = {
+    'names': ['vienna', 'mutcd', 'ambiguous'],
+    'nc': 3,
+    'train': [
+        f'{base}/mutcd/train/images',
+        f'{base}/vienna/train/images'
+    ],
+    'val': [
+        f'{base}/mutcd/valid/images',
+        f'{base}/vienna/valid/images'
+    ]
+}
+
+with open('/kaggle/working/data.yaml', 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+
+# Verify
+for split in ['mutcd/train/images', 'mutcd/valid/images', 'vienna/train/images', 'vienna/valid/images']:
+    path = f'{base}/{split}'
+    print(f"{path}: {'success' if os.path.exists(path) else 'failed'}")
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-28T15:06:54.648381Z","iopub.execute_input":"2026-03-28T15:06:54.649092Z","iopub.status.idle":"2026-03-28T15:07:00.373334Z","shell.execute_reply.started":"2026-03-28T15:06:54.649061Z","shell.execute_reply":"2026-03-28T15:07:00.372563Z"}}
+!pip install ultralytics 
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-28T15:07:10.997254Z","iopub.execute_input":"2026-03-28T15:07:10.997566Z","iopub.status.idle":"2026-03-28T17:15:48.358936Z","shell.execute_reply.started":"2026-03-28T15:07:10.997536Z","shell.execute_reply":"2026-03-28T17:15:48.358116Z"},"_kg_hide-input":true}
+from ultralytics import YOLO
+
+model = YOLO('yolov8m.pt')
+model.train(
+    data='/kaggle/working/data.yaml',
+    epochs=50,
+    imgsz=640,
+    batch=16,
+    name='signs_v23',
+    project='/kaggle/working/runs',
+    device=0,
+    cls=2.0,
+    patience=15,
+    mixup=0.1,
+    copy_paste=0.1,
+    degrees=10.0,
+    fliplr=0.5,
+)
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-28T17:25:58.284183Z","iopub.execute_input":"2026-03-28T17:25:58.284847Z","iopub.status.idle":"2026-03-28T17:26:03.359182Z","shell.execute_reply.started":"2026-03-28T17:25:58.284806Z","shell.execute_reply":"2026-03-28T17:26:03.358403Z"}}
+import shutil
+
+shutil.make_archive('/kaggle/working/signs_v23_full', 'zip', '/kaggle/working/runs/signs_v23')
+print("Done! Download signs_v23_full.zip from the Output tab")

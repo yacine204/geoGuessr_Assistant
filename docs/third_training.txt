@@ -1,0 +1,97 @@
+# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2026-03-31T05:07:26.123344Z","iopub.execute_input":"2026-03-31T05:07:26.123655Z","iopub.status.idle":"2026-03-31T05:07:27.173746Z","shell.execute_reply.started":"2026-03-31T05:07:26.123618Z","shell.execute_reply":"2026-03-31T05:07:27.172907Z"}}
+import pandas as pd
+import os
+print(os.listdir('/kaggle/input/datasets/yacinebenaroussi/training-set-31'))
+
+# %% [code] {"_kg_hide-output":true,"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2026-03-31T05:07:53.014723Z","iopub.execute_input":"2026-03-31T05:07:53.015431Z","iopub.status.idle":"2026-03-31T05:07:53.054982Z","shell.execute_reply.started":"2026-03-31T05:07:53.015395Z","shell.execute_reply":"2026-03-31T05:07:53.054124Z"}}
+import yaml
+import os
+
+base = '/kaggle/input/datasets/yacinebenaroussi/training-set-31'
+
+config = {
+    'names': ['vienna', 'mutcd', 'ambiguous'],
+    'nc': 3,
+    'train': [
+        f'{base}/german_traffic_signs/Train',
+        f'{base}/lisa_dataset_us/',
+        f'{base}/lisa_oversampled'
+    ],
+    'val': [
+        f'{base}/german_traffic_signs/Test',
+        f'{base}/lisa_dataset_us/'
+    ]
+}
+
+with open('/kaggle/working/data.yaml', 'w') as f:
+    yaml.dump(config, f, default_flow_style=False)
+
+# Verify
+for split in [
+    'german_traffic_signs/Train',
+    'german_traffic_signs/Test',
+    'lisa_dataset_us',
+    'lisa_oversampled'
+]:
+    path = f'{base}/{split}'
+    print(f"{path}: {'true' if os.path.exists(path) else 'wrong'}")
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-31T05:08:26.390039Z","iopub.execute_input":"2026-03-31T05:08:26.390431Z","iopub.status.idle":"2026-03-31T05:08:31.176213Z","shell.execute_reply.started":"2026-03-31T05:08:26.390393Z","shell.execute_reply":"2026-03-31T05:08:31.175430Z"},"jupyter":{"outputs_hidden":false}}
+!pip install ultralytics
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-31T05:08:07.863862Z","iopub.execute_input":"2026-03-31T05:08:07.864612Z","iopub.status.idle":"2026-03-31T05:08:07.874075Z","shell.execute_reply.started":"2026-03-31T05:08:07.864581Z","shell.execute_reply":"2026-03-31T05:08:07.873216Z"},"jupyter":{"outputs_hidden":false}}
+import pandas as pd
+import os
+print(os.listdir('/kaggle/input/datasets/yacinebenaroussi/pt-from-v2'))
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-31T05:08:10.114608Z","iopub.execute_input":"2026-03-31T05:08:10.115375Z","iopub.status.idle":"2026-03-31T05:08:15.043697Z","shell.execute_reply.started":"2026-03-31T05:08:10.115343Z","shell.execute_reply":"2026-03-31T05:08:15.042993Z"},"jupyter":{"outputs_hidden":false}}
+!pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121 --upgrade
+
+# %% [code] {"jupyter":{"outputs_hidden":false}}
+!nvidia-smi
+
+# %% [code] {"execution":{"iopub.status.busy":"2026-03-31T05:38:48.526821Z","iopub.execute_input":"2026-03-31T05:38:48.527592Z"},"jupyter":{"outputs_hidden":false}}
+from ultralytics import YOLO
+model = YOLO('/kaggle/input/datasets/yacinebenaroussi/pt-from-v2/best2.pt')
+
+
+model.train(
+    data='/kaggle/working/data.yaml',
+    epochs=20,
+    batch=64,
+    imgsz=640,
+    device=[0, 1],
+    amp=True,
+    cache="disk",
+    workers=8,           # increased from 4, better GPU utilization
+    name='signs_v3',
+    project='/kaggle/working/runs',
+    patience=10,         # reduced — model converges faster when fine-tuning
+    save_period=1,       # save more often in case of session timeout
+
+    # Fix the LR issue — explicit optimizer so lr0 isn't ignored
+    optimizer='SGD',
+    lr0=0.001,           # fine-tuning LR, 10x lower than default
+    lrf=0.01,
+    momentum=0.937,
+    warmup_epochs=1.0,   # reduced — model already knows the task
+
+    # Loss weights
+    box=7.5,
+    cls=1.5,             # reduced from 2.0, model already knows classes
+    dfl=1.5,
+
+    # Augmentations — tone down for fine-tuning
+    mosaic=0.5,          # reduced from 1.0
+    mixup=0.05,          # reduced from 0.1
+    copy_paste=0.05,     # reduced from 0.1
+    degrees=5.0,         # reduced from 10.0
+    fliplr=0.5,          # keep this
+    hsv_s=0.4,           # reduced from 0.7
+    hsv_v=0.2,           # reduced from 0.4
+    erasing=0.2,         # reduced from 0.4
+
+    close_mosaic=5,      # turn off mosaic earlier (last 5 epochs)
+    weight_decay=0.0005,
+)
+
