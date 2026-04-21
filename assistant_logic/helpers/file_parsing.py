@@ -1,25 +1,18 @@
 from ultralytics import YOLO
 from data_types.road_sign_type import SignResult
-from data_types.country_confidence import ALL_COUNTRIES_WITH_CONFIDENCE, CountryConfidence
-from rules.convention.country_distribution import COUNTRY_CONVENTION, CONVENTIONS
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 @dataclass
-class AnalysisResult:
-    """Enhanced analysis result from image"""
+class YoloDetectionResult:
+    """Raw YOLO detection result from image"""
     detections: List[SignResult]
+    vienna_confidences: List[float]
+    mutcd_confidences: List[float]
     bias: float
     bias_confidence: float
     convention: str
-    vienna_count: int
-    mutcd_count: int
-    vienna_avg_confidence: float
-    mutcd_avg_confidence: float
-    filtered_countries: List[CountryConfidence]
-    top_countries: List[CountryConfidence]
-    explanation: str
 
 def _calculate_bias(vienna_confidence_sum: float, mutcd_confidence_sum: float) -> float:
     """
@@ -113,16 +106,19 @@ def print_detection_summary(vienna_confs: List[float],
     print("="*70 + "\n")
 
 
-def detect_signs(image_path: str, model: YOLO) -> AnalysisResult:
+def detect_signs(image_path: str, model: YOLO) -> YoloDetectionResult:
     """
-    Detect signs in an image and analyze convention bias to predict countries.
+    Detect signs in an image using YOLO.
+    Returns raw detection results without country filtering.
+    
+    Country filtering is handled in country_filtering.py
     
     Args:
         image_path: Path to the image to analyze
         model: YOLO model for detection
     
     Returns:
-        AnalysisResult containing detections, bias, and country predictions
+        YoloDetectionResult containing raw detections and convention bias
     """
     results = model(
         source=image_path,
@@ -139,7 +135,6 @@ def detect_signs(image_path: str, model: YOLO) -> AnalysisResult:
     vienna_confidences: List[float] = []
     mutcd_confidences: List[float] = []
 
-    result: SignResult
     for result in results:
         for box in result.boxes:
             class_id = int(box.cls.item())
@@ -156,15 +151,13 @@ def detect_signs(image_path: str, model: YOLO) -> AnalysisResult:
         result.show()
         all_results.append(result)
     
-    # Calculate sums from lists
+    # Calculate bias and confidence
     vienna_sum = sum(vienna_confidences)
     mutcd_sum = sum(mutcd_confidences)
-    
-    # Calculate bias and confidence
     bias = _calculate_bias(vienna_sum, mutcd_sum)
     bias_confidence = get_detection_confidence(vienna_confidences, mutcd_confidences)
     
-    # Adaptive thresholds based on detection confidence
+    # Determine convention
     if bias_confidence > 0.7:
         threshold = 0.2
     elif bias_confidence > 0.4:
@@ -172,7 +165,6 @@ def detect_signs(image_path: str, model: YOLO) -> AnalysisResult:
     else:
         threshold = 0.5
     
-    # Determine convention
     if bias > threshold:
         convention = 'vienna'
     elif bias < -threshold:
@@ -180,65 +172,15 @@ def detect_signs(image_path: str, model: YOLO) -> AnalysisResult:
     else:
         convention = 'hybrid'
     
-    # Print detailed summary
+    # Print detection summary
     print_detection_summary(vienna_confidences, mutcd_confidences, bias, bias_confidence, convention)
     
-    # Calculate averages for result
-    vienna_avg = np.mean(vienna_confidences) if vienna_confidences else 0.0
-    mutcd_avg = np.mean(mutcd_confidences) if mutcd_confidences else 0.0
-    
-    # Filter countries by convention
-    filtered_countries = ALL_COUNTRIES_WITH_CONFIDENCE.copy()
-    
-    print(f"Filtering countries...")
-    print(f"  Total available: {len(ALL_COUNTRIES_WITH_CONFIDENCE)}")
-    
-    if convention == 'vienna':
-        vienna_countries = set(CONVENTIONS['vienna'])
-        print(f"  Vienna countries in mapping: {len(vienna_countries)}")
-        filtered_countries = [c for c in filtered_countries if c.country in vienna_countries]
-        print(f"  Matched: {len(filtered_countries)}")
-    
-    elif convention == 'mutcd':
-        mutcd_countries = set(CONVENTIONS['mutcd'])
-        print(f"  MUTCD countries in mapping: {len(mutcd_countries)}")
-        filtered_countries = [c for c in filtered_countries if c.country in mutcd_countries]
-        print(f"  Matched: {len(filtered_countries)}")
-    
-    else:
-        print(f"  Using all {len(filtered_countries)} countries (hybrid mode)")
-    
-    # Sort by confidence (highest first)
-    filtered_countries.sort(key=lambda x: x.confidence, reverse=True)
-    
-    # Get top 10
-    top_countries = filtered_countries[:10]
-    
-    print(f"\nTop 10 likely countries:")
-    for i, country in enumerate(top_countries, 1):
-        print(f"  {i}. {country}")
-    
-    # Build explanation
-    explanation = f"""
-Detected {len(vienna_confidences)} Vienna signs (avg confidence: {vienna_avg:.2f})
-Detected {len(mutcd_confidences)} MUTCD signs (avg confidence: {mutcd_avg:.2f})
-Bias: {bias:+.3f} (confidence: {bias_confidence:.1%})
-Convention: {convention.upper()}
-Filtered {len(filtered_countries)} countries based on convention
-Top prediction: {top_countries[0].country if top_countries else 'Unknown'}
-    """
-    
-    return AnalysisResult(
+    return YoloDetectionResult(
         detections=all_results,
+        vienna_confidences=vienna_confidences,
+        mutcd_confidences=mutcd_confidences,
         bias=bias,
         bias_confidence=bias_confidence,
-        convention=convention,
-        vienna_count=len(vienna_confidences),
-        mutcd_count=len(mutcd_confidences),
-        vienna_avg_confidence=vienna_avg,
-        mutcd_avg_confidence=mutcd_avg,
-        filtered_countries=filtered_countries,
-        top_countries=top_countries,
-        explanation=explanation
+        convention=convention
     )
 

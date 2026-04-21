@@ -9,7 +9,7 @@ import easyocr
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
-
+import re
 
 @dataclass
 class OCRResult:
@@ -219,7 +219,7 @@ def extract_text(image_path: str,
         return ocr_result
     
     except Exception as e:
-        print(f"✗ OCR Error: {e}")
+        print(f"OCR Error: {e}")
         return OCRResult(
             text="",
             text_blocks=[],
@@ -274,3 +274,74 @@ def extract_other_text_blocks(image_path: str,
     """Quick wrapper to extract text blocks NOT in road sign boxes."""
     result = extract_text(image_path, yolo_road_sign_boxes)
     return result.other_text_blocks
+
+
+def clean_ocr_blocks(text_blocks: List[str]) -> List[str]:
+    """
+    Clean OCR blocks: merge articles AND filter out noise/garbage.
+    
+    Steps:
+    1. Merges articles/prepositions separated by newlines with their next word
+       Example: ['LA', 'MALTOURNÉE'] -> ['LA MALTOURNÉE']
+    2. Filters out UI elements, numbers, dates, and OCR garbage
+    3. Returns only valid location search terms
+    """
+    
+    ARTICLES_PREPOSITIONS = {
+        'le', 'la', 'les', 'de', 'du', 'des', 'et', 'à', 'au', 'aux', 'un', 'une',
+        'the', 'a', 'an', 'and', 'at', 'in', 'on', 'or',
+        'el', 'la', 'los', 'las', 'de', 'del', 'y', 'a', 'en',
+        'der', 'die', 'das', 'den', 'dem', 'des', 'und', 'in', 'von',
+        'il', 'lo', 'la', 'i', 'gli', 'le', 'di', 'da', 'e',
+    }
+    
+    # when testing google view images
+    BLACKLIST = {
+        'google street view', 'google maps', 'voir plus de dates', 'voir plus',
+        'pourquoi pas', 'rue', 'rue victor', 'victor', 'piscine'
+    }
+    
+    # Step 1: Merge articles with next word
+    merged = []
+    i = 0
+    while i < len(text_blocks):
+        current = text_blocks[i].strip().lower()
+        if current in ARTICLES_PREPOSITIONS and i + 1 < len(text_blocks):
+            merged.append(f"{text_blocks[i].strip()} {text_blocks[i + 1].strip()}")
+            i += 2
+        else:
+            merged.append(text_blocks[i].strip())
+            i += 1
+    
+    # Step 2: Filter out noise
+    cleaned = []
+    for block in merged:
+        lower = block.lower()
+        
+        # Skip empty or too short (< 3 chars)
+        if not block or len(block) < 3:
+            continue
+        
+        # Skip if in blacklist
+        if lower in BLACKLIST:
+            continue
+        
+        # Skip if only numbers/special chars (no alphabet)
+        if not any(c.isalpha() for c in block):
+            continue
+        
+        # Skip if has special chars like = ; : [ ] etc
+        if any(c in '=;:[]{}()\\|' for c in block):
+            continue
+        
+        # Skip if looks like date (digit:digit or digit/digit)
+        if re.search(r'\d{1,2}[:/]\d{1,2}', block):
+            continue
+        
+        # Skip if starts with small number + letter (OCR noise like "22 D34", "2 Jveco")
+        if re.match(r'^\d{1,2}\s+[a-z]', lower):
+            continue
+        
+        cleaned.append(block)
+    
+    return cleaned
