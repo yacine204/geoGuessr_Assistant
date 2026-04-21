@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
 import re
+from difflib import get_close_matches
+
 
 @dataclass
 class OCRResult:
@@ -86,6 +88,29 @@ def _text_in_box(text_bbox: List[List[float]], yolo_box: Tuple[float, float, flo
     except Exception as e:
         print(f"Error checking overlap: {e}")
         return False
+
+
+from difflib import get_close_matches
+
+def fuzzy_fix_keywords(block: str) -> str:
+    # Common words found on signs/buildings (todo: look for github repo that contains these infos)
+    VOCABULARY = [
+        "SUPERMERCADO", "RESTAURANTE", "BOULANGERIE", "PHARMACIE", 
+        "HOSPITAL", "AYUNTAMIENTO", "GENDARMERIE"
+    ]
+    
+    words = block.split()
+    fixed_words = []
+    
+    for word in words:
+        # If word is high confidence but slightly off
+        matches = get_close_matches(word.upper(), VOCABULARY, n=1, cutoff=0.7)
+        if matches:
+            fixed_words.append(matches[0])
+        else:
+            fixed_words.append(word)
+            
+    return " ".join(fixed_words)
 
 
 def extract_text(image_path: str, 
@@ -277,71 +302,68 @@ def extract_other_text_blocks(image_path: str,
 
 
 def clean_ocr_blocks(text_blocks: List[str]) -> List[str]:
-    """
-    Clean OCR blocks: merge articles AND filter out noise/garbage.
-    
-    Steps:
-    1. Merges articles/prepositions separated by newlines with their next word
-       Example: ['LA', 'MALTOURNÉE'] -> ['LA MALTOURNÉE']
-    2. Filters out UI elements, numbers, dates, and OCR garbage
-    3. Returns only valid location search terms
-    """
-    
     ARTICLES_PREPOSITIONS = {
         'le', 'la', 'les', 'de', 'du', 'des', 'et', 'à', 'au', 'aux', 'un', 'une',
         'the', 'a', 'an', 'and', 'at', 'in', 'on', 'or',
         'el', 'la', 'los', 'las', 'de', 'del', 'y', 'a', 'en',
-        'der', 'die', 'das', 'den', 'dem', 'des', 'und', 'in', 'von',
-        'il', 'lo', 'la', 'i', 'gli', 'le', 'di', 'da', 'e',
     }
     
-    # when testing google view images
-    BLACKLIST = {
-        'google street view', 'google maps', 'voir plus de dates', 'voir plus',
-        'pourquoi pas', 'rue', 'rue victor', 'victor', 'piscine'
-    }
+    # Step 1: Branching Grammar Logic
+    # Instead of just merging, we create multiple search candidates
+    candidates = []
+    for block in text_blocks:
+        words = block.strip().split()
+        if not words:
+            continue
+            
+        # Add the original full block
+        candidates.append(" ".join(words))
+        
+        # Look for articles/prepositions to create sub-searches
+        for i, word in enumerate(words):
+            if word.lower() in ARTICLES_PREPOSITIONS:
+                # Branch 1: From the article to the end (e.g., "la despensa @p")
+                branch_to_end = " ".join(words[i:])
+                candidates.append(branch_to_end)
+                
+                # Branch 2: Just the article + next word (e.g., "la despensa")
+                if i + 1 < len(words):
+                    short_phrase = f"{words[i]} {words[i+1]}"
+                    candidates.append(short_phrase)
     
-    # Step 1: Merge articles with next word
-    merged = []
-    i = 0
-    while i < len(text_blocks):
-        current = text_blocks[i].strip().lower()
-        if current in ARTICLES_PREPOSITIONS and i + 1 < len(text_blocks):
-            merged.append(f"{text_blocks[i].strip()} {text_blocks[i + 1].strip()}")
-            i += 2
-        else:
-            merged.append(text_blocks[i].strip())
-            i += 1
-    
-    # Step 2: Filter out noise
     cleaned = []
-    for block in merged:
+    for block in candidates:
+        # 1. Basic Sanitization (Remove OCR noise symbols, keep @ for now)
+        block = re.sub(r'[=;:\[\]{}()\\|]', '', block).strip()
+        
+        # 2. Geoguessr Road Sign Fix: 034 -> D34
+        block = re.sub(r'^[0O](\d{2,3})', r'D\1', block)
+        
+        # 3. Fuzzy Correction (Fixes DUPERMERCADO -> SUPERMERCADO)
+        block = fuzzy_fix_keywords(block)
+        
+        # 4. Filter Logic
         lower = block.lower()
-        
-        # Skip empty or too short (< 3 chars)
-        if not block or len(block) < 3:
+        has_alpha = any(c.isalpha() for c in block)
+        has_digit = any(c.isdigit() for c in block)
+        is_road = re.search(r'[A-Z]\s?\d+', block) 
+
+        # Reject if purely garbage or known UI noise
+        if not block or len(block) < 2:
             continue
-        
-        # Skip if in blacklist
-        if lower in BLACKLIST:
+        if any(ui in lower for ui in {'view', 'map', 'data', 'street', 'google'}):
             continue
-        
-        # Skip if only numbers/special chars (no alphabet)
-        if not any(c.isalpha() for c in block):
+            
+        # Reject if it's just OCR noise (e.g., "2 Jveco") but keep road signs
+        if re.match(r'^\d{1,2}\s+[a-z]', lower) and not is_road:
             continue
-        
-        # Skip if has special chars like = ; : [ ] etc
-        if any(c in '=;:[]{}()\\|' for c in block):
-            continue
-        
-        # Skip if looks like date (digit:digit or digit/digit)
-        if re.search(r'\d{1,2}[:/]\d{1,2}', block):
-            continue
-        
-        # Skip if starts with small number + letter (OCR noise like "22 D34", "2 Jveco")
-        if re.match(r'^\d{1,2}\s+[a-z]', lower):
-            continue
-        
-        cleaned.append(block)
+
+        # Final Cleanup: Remove trailing OCR artifacts like "@p" or " @ "
+        block = re.sub(r'\s*@\w*$', '', block).strip()
+
+        # Final Approval
+        if has_alpha or (has_digit and len(block) > 1):
+            cleaned.append(block)
     
-    return cleaned
+    # Remove duplicates while preserving order
+    return list(dict.fromkeys(cleaned))

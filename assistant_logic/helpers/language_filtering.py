@@ -66,6 +66,8 @@ LANGUAGE_TO_COUNTRIES = {
     'id': ['Indonesia'],
     'ms': ['Malaysia'],
     'tl': ['Philippines'],
+    'ca': ['Spain', 'Andorra'],
+    'gl': ['Spain'],
 }
 
 LANGUAGE_SPECIFICITY = {
@@ -76,8 +78,8 @@ LANGUAGE_SPECIFICITY = {
     'cs': 0.85, 'sk': 0.85, 'hr': 0.85, 'sr': 0.85, 'sl': 0.85,
     'uk': 0.80, 'tr': 0.80, 'el': 0.80, 'ar': 0.70, 'hi': 0.75, 'ta': 0.65,
     'de': 0.65, 'it': 0.70, 'nl': 0.70, 'pt': 0.60, 'fr': 0.55,
-    'zh-cn': 0.95, 'zh-tw': 0.95, 'es': 0.40,
-    'en': 0.30,
+    'zh-cn': 0.95, 'zh-tw': 0.95, 'es': 0.30, 'ca': 0.95, 'gl':0.95,
+    'en': 0.20,
 }
 
 
@@ -89,7 +91,7 @@ def calculate_language_specificity(language_code: str) -> float:
 
 def detect_text_language(text: str) -> Tuple[str, float]:
     """Detect language from text."""
-    if not HAS_LANGDETECT or not text or len(text.strip()) < 3:
+    if not HAS_LANGDETECT or not text or len(text.strip()) < 6:
         return ('unknown', 0.0)
     
     try:
@@ -165,6 +167,9 @@ def adjust_confidence_by_language(filtered_countries: List,
     Returns:
         Tuple of (updated_countries, language_result)
     """
+    digit_count = sum(c.isdigit() for c in ocr_text)
+    if digit_count / len(ocr_text) > 0.4:
+        return filtered_countries, None
     
     if not HAS_LANGDETECT or not ocr_text or len(ocr_text.strip()) < 3:
         return filtered_countries, None
@@ -175,9 +180,12 @@ def adjust_confidence_by_language(filtered_countries: List,
     if lang_result.language == 'unknown' or lang_result.language_confidence < 0.5:
         return filtered_countries, lang_result
     
+    effective_specificity = lang_result.language_specificity
+    if len(ocr_text.strip()) < 15:
+        effective_specificity *= 0.5
     # CORRECTED FORMULA: multiplicative boost
     # scaled_multiplier will be between 1.0 and boost_multiplier
-    scaled_multiplier = 1.0 + (boost_multiplier - 1.0) * lang_result.language_specificity
+    scaled_multiplier = 1.0 + (boost_multiplier - 1.0) * effective_specificity
     
     print(f"\n{'='*70}")
     print(f"LANGUAGE ANALYSIS (VISIBLE SIGNS)")

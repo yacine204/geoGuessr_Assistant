@@ -13,11 +13,13 @@ from helpers.over_pass_query import (
     parse_overpass_results,
     print_overpass_results
 )
+
+from rules.language.countries_by_language import LANGUAGE_MAP
 import os
 import asyncio
 
 model = YOLO("yolo_pts/best2.pt")
-image_test = '/home/yacine/Desktop/codes/geoGussr-Assistant/tests2/ocr_test.png'
+image_test = '/home/yacine/Desktop/codes/geoGussr-Assistant/tests2/test_spain.png'
 
 # Analyze signs and detect convention
 yolo_result = detect_signs(image_test, model)
@@ -26,7 +28,7 @@ yolo_result = detect_signs(image_test, model)
 sign_boxes = []
 if yolo_result.detections and len(yolo_result.detections) > 0:
     boxes = yolo_result.detections[0].boxes
-    for box in boxes:                          # ← fixed: inside the if block
+    for box in boxes:                          
         x1, y1, x2, y2 = map(float, box.xyxy[0])
         sign_boxes.append((x1, y1, x2, y2))
 
@@ -53,7 +55,7 @@ country_result = filter_countries(
 # NOMINATIM GEOLOCATION TEST
 # ============================================================================
 async def test_nominatim(ocr_result):
-    """Search for locations using text extracted from OCR"""   # ← fixed: indented + closed
+    """Search for locations using text extracted from OCR"""   
     print("\nNOMINATIM GEOLOCATION SEARCH")
     print("=" * 70)
 
@@ -92,8 +94,10 @@ async def test_nominatim(ocr_result):
 
     return nominatim_results, location_results
 
-# Run nominatim search
+
+
 nominatim_results, location_results = asyncio.run(test_nominatim(ocr_result))
+
 
 # ============================================================================
 # LOCATION CLUSTERING & OVERPASS QUERY GENERATION

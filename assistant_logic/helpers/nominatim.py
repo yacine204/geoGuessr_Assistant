@@ -3,6 +3,17 @@ from geopy.geocoders import Nominatim
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 
+## todo : only query over top countries. pass another variable to the func 
+# location = await loop.run_in_executor(
+#             None, 
+#             lambda: geolocator.geocode(
+#                 query,
+#                 language=language, 
+#                 addressdetails=True, 
+#                 timeout=10)
+#         )
+# what can we add here?
+# search about 
 @dataclass
 class NominatimResult:
     query: str
@@ -47,12 +58,18 @@ def _extract_address_parts(location) -> Dict[str, str]:
 
 async def search(query: str, language: str = 'en') -> List[NominatimResult]:
     """Search for a location using Nominatim"""
+    
     try:
         # Run geocoding in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
+            
         location = await loop.run_in_executor(
             None, 
-            lambda: geolocator.geocode(query, language=language, addressdetails=True, timeout=10)
+            lambda: geolocator.geocode(
+                query,
+                language=language, 
+                addressdetails=True, 
+                timeout=10)
         )
         
         if not location:
