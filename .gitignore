@@ -2,11 +2,9 @@ geo_venv/
 __pycache__/
 .env
 tests/
-tests2/
 detections/
 datasets/
 dataset.zip
 labels_v2.zip
 geotrouvetout_weights/
 training_result/
-tests2/
