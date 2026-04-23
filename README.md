@@ -146,6 +146,13 @@ cd frontend
 npm install
 npm run dev
 ```
+you can run the assistant logic alone by:
+```bash
+source .venv/bin/activate        # linux/mac
+.venv\Scripts\activate           # windows
+cd assistant_logic/
+python main.py <path to ur image>
 
+```
 ## Model Weights
 you can mine thats in the `assistant_logic/yolo_pts/best2.pt` (set by default).
