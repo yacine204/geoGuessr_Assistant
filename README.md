@@ -109,11 +109,11 @@ we evaluate YOLO using box precision, recall, F1, mAP50, mAP50-95 and the confus
 
 ### Example of detections:
 
-![mutcd](assistant_logic/detections/mutcd_1.gif)
+![mutcd](training_result_for_repo/mutcd_1.gif)
 
-![vienna](assistant_logic/detections/street_view_2.png)
+![vienna](training_result_for_repo/street_view_2.png)
 
-![ambig](assistant_logic/detections/Give_way_outdoor.jpg)
+![ambig](training_result_for_repo/Give_way_outdoor.jpg)
 ## Getting Started
 
 ### Prerequisites
