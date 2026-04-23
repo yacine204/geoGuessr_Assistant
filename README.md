@@ -97,13 +97,15 @@ basically reduce all classes into one (mutcd/vienna) if the class isnt yield or 
 
 we evaluate YOLO using box precision, recall, F1, mAP50, mAP50-95 and the confusion matrix to measure both detection quality and class confusion
 
-![BoxF1 curve](training_result/signs_v2/BoxF1_curve.png)
+![results](training_result_for_repo/results.png)
 
-![BoxP curve](training_result/signs_v2/BoxP_curve.png)
+![BoxF1 curve](training_result_for_repo/BoxF1_curve.png)
 
-![BoxPr curve](training_result/signs_v2/BoxPR_curve.png)
+![BoxP curve](training_result_for_repo/BoxP_curve.png)
 
-![Normalized Confusion Matrix](training_result/signs_v2/confusion_matrix_normalized.png)
+![BoxPr curve](training_result_for_repo/BoxPR_curve.png)
+
+![Normalized Confusion Matrix](training_result_for_repo/confusion_matrix_normalized.png)
 
 ### Example of detections:
 
