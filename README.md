@@ -1,4 +1,4 @@
-# GeoGuessr Location Assistant (still in progress)
+# GeoGuessr Location Assistant (Final Year Project, Submitted in partial fulfilment of the requirements for the degree of Licence in Computer Science)
 
 Street-level image analysis pipeline that extracts geographic clues from images
 (road signs, architecture, language) using YOLOv8, OCR, and OpenStreetMap
