@@ -23,8 +23,13 @@ class User(SQLModel, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True))
     )
+    avatar_url: Optional[str] = Field(default=None)
 
     conversations: List["Conversation"] = Relationship(back_populates="user")
+
+    def generate_avatar_url(self) -> str:
+       seed = self.pseudo or self.email.split("@")[0]
+       return f"https://api.dicebear.com/9.x/identicon/svg?seed={seed}"
 
 class UserCreate(SQLModel):
     pseudo: str | None = None
@@ -36,6 +41,8 @@ class UserRead(SQLModel):
     pseudo: str | None = None
     id: int
     email: str
+    avatar_url: str
+    
 
 class Token(SQLModel):
     access_token: str
@@ -43,4 +50,10 @@ class Token(SQLModel):
 
 class TokenData(SQLModel):
     email: Optional[str] = None
+
+
+class RegisterResponse(SQLModel):
+    user: UserRead
+    access_token: str
+    token_type: str = "bearer"
 

@@ -19,6 +19,7 @@ from helpers.over_pass_query import (
 from helpers.nominatim_to_overpass import extract_overpass_tags
 import os
 import asyncio
+from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 import logging
 
@@ -26,12 +27,13 @@ logger = logging.getLogger(__name__)
 
 # Load model once (cache it)
 _model = None
+MODEL_PATH = Path(__file__).resolve().parent / "yolo_pts" / "best2.pt"
 
 def get_model():
     """Load YOLO model (singleton pattern to avoid reloading)."""
     global _model
     if _model is None:
-        _model = YOLO("yolo_pts/best2.pt")
+        _model = YOLO(str(MODEL_PATH))
     return _model
 
 
@@ -58,18 +60,43 @@ def stage_1_detect_road_signs(image_path: str) -> Dict:
     yolo_result = detect_signs(image_path, model)
     
     sign_boxes = []
+    dominant_detected = "unknown"
+    dominant_conf = None
+
     if yolo_result.detections and len(yolo_result.detections) > 0:
-        boxes = yolo_result.detections[0].boxes
-        for box in boxes:
-            x1, y1, x2, y2 = map(float, box.xyxy[0])
-            sign_boxes.append((x1, y1, x2, y2))
+        best_conf = -1.0
+        for detection in yolo_result.detections:
+            boxes = detection.boxes
+            class_names = getattr(detection, "names", {})
+            for box in boxes:
+                x1, y1, x2, y2 = map(float, box.xyxy[0])
+                sign_boxes.append((x1, y1, x2, y2))
+
+                conf = float(box.conf[0]) if hasattr(box.conf, "__len__") else float(box.conf)
+                if conf > best_conf:
+                    best_conf = conf
+                    cls_id = int(box.cls[0]) if hasattr(box.cls, "__len__") else int(box.cls)
+                    class_name = str(class_names.get(cls_id, "unknown")).lower()
+                    if "vienna" in class_name:
+                        dominant_detected = "vienna"
+                    elif "mutcd" in class_name:
+                        dominant_detected = "mutcd"
+                    else:
+                        dominant_detected = class_name
+                    dominant_conf = conf
+
         logger.info(f"  ✓ Found {len(sign_boxes)} road signs")
     else:
         logger.warning("  ⚠ No road signs detected")
     
     return {
         "convention": yolo_result.convention,
+        "bias": yolo_result.bias,
         "boxes": sign_boxes,
+        "sign_detection": {
+            "detected": dominant_detected,
+            "conf": dominant_conf,
+        },
         "detections": yolo_result.detections,
         "image_path": image_path,
     }
@@ -105,6 +132,9 @@ def stage_2_extract_text(image_path: str, sign_boxes: List[Tuple]) -> Dict:
     
     search_queries = clean_ocr_blocks(ocr_result.other_text_blocks) if ocr_result.success else []
     logger.info(f"  ✓ Found {len(search_queries)} search term(s)")
+    if ocr_result.success:
+        logger.info(f"  ✓ OCR text (inside signs): {ocr_result.text}")
+        logger.info(f"  ✓ OCR text blocks (outside signs): {ocr_result.other_text_blocks}")
 
     detected_language = None
     if ocr_result.success and ocr_result.text:
@@ -143,7 +173,7 @@ def stage_3_filter_countries(convention: str, ocr_text: str) -> Dict:
         show_details=False,
     )
     
-    top_countries = get_top_countries_names(country_result.filtered_countries)
+    top_countries = [c.country for c in country_result.filtered_countries[:10]]
     logger.info(f"  ✓ Top countries: {', '.join(top_countries[:3])}")
     
     return {
@@ -313,7 +343,8 @@ async def predict(image_path: str) -> Dict:
         Dict with compact output:
         {
             "safe_geolocalization": {"lon": float | None, "lat": float | None},
-            "candidates": [{"lat": float, "lon": float}, ...]  # max 5
+            "candidates": [{"lat": float, "lon": float}, ...],  # max 5
+            "top_countries": [str, ...]  # max 10
         }
     """
     logger.info(f"Starting prediction pipeline for {image_path}")
@@ -349,11 +380,19 @@ async def predict(image_path: str) -> Dict:
 
         # Safe geolocalization from Overpass center (if available)
         result = {
+            "YOLO_detections": {
+                "dominant_convention": signs["convention"],
+                "bias": signs["bias"],
+            },
+            "sign_detection": signs["sign_detection"],
+            "ocr_detections": text["text_inside_signs"],
+            "language": text["language"],
             "safe_geolocalization": {
                 "lon": overpass["center_longitude"],
                 "lat": overpass["center_latitude"],
             },
             "candidates": candidates,
+            "top_countries": countries["top_countries"][:10],
         }
         
         logger.info("Prediction pipeline completed successfully")
