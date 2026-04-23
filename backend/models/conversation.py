@@ -1,13 +1,17 @@
 from sqlmodel import SQLModel, Field, Relationship
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import datetime
+from typing import Optional, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .image import Image
+    from .user import User
 
 
 class Conversation(SQLModel, table=True):
     conversation_id: int | None = Field(default=None, primary_key=True)
     title: str = Field(max_length=100)
     created_at: datetime = Field(
-        default_factory= lambda: datetime.now(timezone.utc),
+        default_factory=datetime.utcnow,
         index=True
     )
     updated_at: datetime | None = Field(default=None)

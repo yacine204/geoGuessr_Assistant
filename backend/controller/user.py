@@ -1,8 +1,6 @@
-from service.user import UserService
+from ..service.user import UserService
 from fastapi import FastAPI
-from models import User, UserCreate
-controller = FastAPI()
+from ..models.user import User, UserCreate
 
-@controller.post('/login')
-async def login(user_service: UserService,user_create: UserCreate):
-    return await UserService.signup(user_service, user_create)
+user_controller = FastAPI()
+

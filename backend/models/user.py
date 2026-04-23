@@ -1,26 +1,46 @@
-from sqlmodel import SQLModel, Field, Relationship
-from datetime import datetime, timezone
-from typing import List, Optional
+from sqlmodel import SQLModel, Field, Relationship, DateTime, func
+from sqlalchemy import Column, Integer
+from datetime import datetime
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .conversation import Conversation
 
 class User(SQLModel, table=True):
-    user_id: int | None = Field(primary_key=True, default=None)
-    pseudo: str = Field(unique=True, index=True)
+    id: Optional[int] = Field(default=None, sa_column=Column("user_id", Integer, primary_key=True))
+    pseudo: Optional[str] = Field(default=None, unique=True, index=True, nullable=True)
     email: str = Field(unique=True, index=True)
     hashed_password: str
+
     created_at: datetime = Field(
-        default_factory= lambda: datetime.now(timezone.utc),
-        index=True
+        sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
-    updated_at: datetime | None = Field(default=None)
-    deleted_at: datetime | None = Field(default=None)
+    updated_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True))
+    )
+
     conversations: List["Conversation"] = Relationship(back_populates="user")
 
 class UserCreate(SQLModel):
-    pseudo: str
+    pseudo: str | None = None
     email: str
     password: str
 
+
 class UserRead(SQLModel):
-    pseudo: str 
+    pseudo: str | None = None
     id: int
     email: str
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str
+
+class TokenData(SQLModel):
+    email: Optional[str] = None
+
