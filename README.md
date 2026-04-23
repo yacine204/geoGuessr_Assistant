@@ -146,7 +146,7 @@ cd frontend
 npm install
 npm run dev
 ```
-you can run the assistant logic alone by:
+### you can run the assistant alone by:
 ```bash
 source .venv/bin/activate        # linux/mac
 .venv\Scripts\activate           # windows
