@@ -104,6 +104,14 @@ we evaluate YOLO using box precision, recall, F1, mAP50, mAP50-95 and the confus
 ![BoxPr curve](training_result/signs_v2/BoxPR_curve.png)
 
 ![Normalized Confusion Matrix](training_result/signs_v2/confusion_matrix_normalized.png)
+
+### Example of detections:
+
+![mutcd](assistant_logic/detections/mutcd_1.gif)
+
+![vienna](assistant_logic/detections/street_view_2.png)
+
+![ambig](assistant_logic/detections/Give_way_outdoor.jpg)
 ## Getting Started
 
 ### Prerequisites
