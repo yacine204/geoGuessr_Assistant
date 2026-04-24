@@ -129,7 +129,8 @@ cd geoguessr_assistant
 # create and activate venv
 python -m venv .venv
 source .venv/bin/activate        # linux/mac
-.venv\Scripts\activate           # windows
+.venv\Scripts\Activate.ps1      # windows PowerShell
+.venv\Scripts\activate.bat      # windows cmd
 
 # install dependencies
 pip install -r requirements.txt

@@ -109,7 +109,7 @@ ultralytics==8.4.24
 ultralytics-thop==2.0.18
 urllib3==2.6.3
 uvicorn==0.42.0
-uvloop==0.22.1
+uvloop==0.22.1; sys_platform != "win32"
 watchfiles==1.1.1
 wcwidth==0.6.0
 webencodings==0.5.1
