@@ -56,6 +56,47 @@ async def Increment(
     return incremented_convo
 
 
+@router.post('/message', response_model=ConversationRead)
+async def Message(
+    image: UploadFile = File(...),
+    guess_result: str = Form(...),
+    conversation_id: int | None = Form(default=None),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    image_bytes = await image.read()
+
+    target_conversation_id = conversation_id
+    if target_conversation_id is None:
+        conversations = await conversation_service.GetUserConvos(current_user.id, session)
+        if conversations:
+            target_conversation_id = conversations[0].conversation_id
+
+    if target_conversation_id is None:
+        conversation = await conversation_service.InitConversation(
+            current_user.id,
+            image_bytes,
+            guess_result,
+            session,
+        )
+    else:
+        conversation = await conversation_service.IncrementConversation(
+            target_conversation_id,
+            current_user.id,
+            image_bytes,
+            guess_result,
+            session,
+        )
+
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="conversation not found for this user",
+        )
+
+    return conversation
+
+
 @router.delete('/delete/{conversation_id}')
 async def Delete(conversation_id: int = Path(..., alias="conversation_id")
                  ,session: AsyncSession = Depends(get_async_session)):

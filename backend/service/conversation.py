@@ -1,14 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import UploadFile
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.conversation import Conversation
 from models.image import Image
 from models.reply import Reply
-from models.user import User
 from service.cloudinary import upload_image_to_cloudinary
 
 async def InitConversation(
@@ -52,7 +50,7 @@ async def IncrementConversation(
     image_bytes: bytes,
     guess_result: str,
     session: AsyncSession,
-) -> Optional[Image]:
+) -> Optional[Conversation]:
     conversation = await session.get(Conversation, conversation_id)
     if conversation is None or conversation.user_id != user_id:
         return None
@@ -80,8 +78,8 @@ async def IncrementConversation(
     conversation.updated_at = datetime.utcnow()
 
     await session.commit()
-    await session.refresh(new_image)
-    return new_image
+    await session.refresh(conversation)
+    return conversation
 
 
 async def DeleteConversation(conversation_id: int, session:AsyncSession)->bool:
@@ -95,7 +93,7 @@ async def DeleteConversation(conversation_id: int, session:AsyncSession)->bool:
     await session.commit()
     return result.rowcount > 0
     
-async def GetUserConvos(user_id: int, session:AsyncSession)->Optional[Conversation]:
+async def GetUserConvos(user_id: int, session: AsyncSession) -> list[Conversation]:
     if user_id is None or session is None:
         return []
     
