@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from routes.auth import router as auth_router
 from routes.guess import router as guess_router
 from routes.cloudinary import router as cloudinary_router
@@ -21,7 +21,13 @@ def _sanitize_for_json(value):
     return value
 
 
-app = FastAPI()
+app = FastAPI(
+    title="GeoGussr Assistant API",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,4 +51,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.get("/")
 def read_root():
     return {"message": "GeoGussr Assistant API"}
+
+
+@app.get("/swagger", include_in_schema=False)
+def swagger_redirect():
+    return RedirectResponse(url="/docs")
 

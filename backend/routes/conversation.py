@@ -9,10 +9,15 @@ from core.dependencies import get_current_user
 router = APIRouter(prefix="/conversation", tags = ["conversation"])
 
 
-@router.post('/init', response_model=ConversationRead)
+@router.post(
+    '/init',
+    response_model=ConversationRead,
+    summary="Create a conversation",
+    description="Creates a new conversation for the authenticated user and stores the first image + guess result.",
+)
 async def Init(
-    image: UploadFile = File(...),
-    guess_result: str = Form(...),
+    image: UploadFile = File(..., description="Image file for the first conversation message"),
+    guess_result: str = Form(..., description="Serialized guess result payload"),
     session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -31,11 +36,16 @@ async def Init(
         )
     return init
 
-@router.post('/increment/{conversation_id}', response_model=ConversationRead)
+@router.post(
+    '/increment/{conversation_id}',
+    response_model=ConversationRead,
+    summary="Append to an existing conversation",
+    description="Adds a new image + guess result to a specific conversation owned by the authenticated user.",
+)
 async def Increment(
     conversation_id: int = Path(..., alias="conversation_id"),
-    image: UploadFile = File(...),
-    guess_result: str = Form(...),
+    image: UploadFile = File(..., description="Image file to append"),
+    guess_result: str = Form(..., description="Serialized guess result payload"),
     session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -56,11 +66,16 @@ async def Increment(
     return incremented_convo
 
 
-@router.post('/message', response_model=ConversationRead)
+@router.post(
+    '/message',
+    response_model=ConversationRead,
+    summary="Create or append conversation message",
+    description="If `conversation_id` is provided, appends to that conversation. Otherwise reuses latest conversation or creates a new one.",
+)
 async def Message(
-    image: UploadFile = File(...),
-    guess_result: str = Form(...),
-    conversation_id: int | None = Form(default=None),
+    image: UploadFile = File(..., description="Image file for this message"),
+    guess_result: str = Form(..., description="Serialized guess result payload"),
+    conversation_id: int | None = Form(default=None, description="Optional target conversation id"),
     session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -97,7 +112,11 @@ async def Message(
     return conversation
 
 
-@router.delete('/delete/{conversation_id}')
+@router.delete(
+    '/delete/{conversation_id}',
+    summary="Delete a conversation",
+    description="Deletes a conversation by id.",
+)
 async def Delete(conversation_id: int = Path(..., alias="conversation_id")
                  ,session: AsyncSession = Depends(get_async_session)):
     
@@ -109,7 +128,12 @@ async def Delete(conversation_id: int = Path(..., alias="conversation_id")
         )
     return {"deleted conversation status": deleted_convo}
 
-@router.get('/my_convos', response_model=list[ConversationRead])
+@router.get(
+    '/my_convos',
+    response_model=list[ConversationRead],
+    summary="List my conversations",
+    description="Returns all conversations for the authenticated user.",
+)
 async def MyConversations(
     session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user),

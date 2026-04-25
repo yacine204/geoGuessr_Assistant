@@ -4,8 +4,12 @@ from service.cloudinary import upload_image_to_cloudinary
 
 router = APIRouter(prefix="/upload", tags=["images"])
 
-@router.post("/")
-async def upload_image_upload(file: UploadFile = File(...)):
+@router.post(
+    "/",
+    summary="Upload image to Cloudinary",
+    description="Uploads a single image file and returns a hosted URL.",
+)
+async def upload_image_upload(file: UploadFile = File(..., description="Image file to upload")):
     try:
         image_bytes = await file.read()
         image_url = await upload_image_to_cloudinary(image_bytes)

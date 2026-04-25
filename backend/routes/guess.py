@@ -3,7 +3,7 @@ import sys
 import os
 import tempfile
 
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -28,8 +28,13 @@ class GeolocalizationResult(BaseModel):
     top_countries: list[str]
 
 
-@router.post("", response_model=GeolocalizationResult)
-async def guess(image: UploadFile):
+@router.post(
+    "",
+    response_model=GeolocalizationResult,
+    summary="Run geolocation guess",
+    description="Runs the assistant pipeline on an uploaded image and returns geolocation candidates.",
+)
+async def guess(image: UploadFile = File(..., description="Street-view image to analyze")):
     tmp_dir = PROJECT_ROOT / "backend" / "tmp_uploads"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     tmp_file = tmp_dir / image.filename

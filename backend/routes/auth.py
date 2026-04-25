@@ -26,7 +26,12 @@ async def ensure_avatar_url(user: User, session: AsyncSession | None = None) -> 
             await session.commit()
             await session.refresh(user)
 
-@router.post("/register", response_model=RegisterResponse)
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    summary="Register a new user",
+    description="Creates a new user account and returns an access token.",
+)
 async def register(user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User).where(User.email == user_data.email))
     existing_user = result.scalars().first()
@@ -74,7 +79,12 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_as
     return {"user": new_user, "access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/login", response_model=RegisterResponse)
+@router.post(
+    "/login",
+    response_model=RegisterResponse,
+    summary="Authenticate user",
+    description="Validates user credentials and returns an access token.",
+)
 async def login(user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User).where(User.email == user_data.email))
     user = result.scalars().first()
@@ -95,7 +105,12 @@ async def login(user_data: UserCreate, session: AsyncSession = Depends(get_async
 
     return {"user": user, "access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me",response_model=UserRead)
+@router.get(
+    "/me",
+    response_model=UserRead,
+    summary="Get current user profile",
+    description="Returns the authenticated user based on Bearer token.",
+)
 async def get_me(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session)
