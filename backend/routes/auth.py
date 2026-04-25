@@ -16,6 +16,15 @@ from core.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags = ["auth"])
 
+
+async def ensure_avatar_url(user: User, session: AsyncSession | None = None) -> None:
+    if not user.avatar_url:
+        user.avatar_url = user.generate_avatar_url()
+        if session is not None:
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
 @router.post("/register", response_model=RegisterResponse)
 async def register(user_data: UserCreate, session: AsyncSession = Depends(get_async_session)):
     result = await session.execute(select(User).where(User.email == user_data.email))
@@ -58,6 +67,8 @@ async def login(user_data: UserCreate, session: AsyncSession = Depends(get_async
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
+
+    await ensure_avatar_url(user, session)
     
     access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     access_token = create_access_token(
@@ -68,5 +79,9 @@ async def login(user_data: UserCreate, session: AsyncSession = Depends(get_async
     return {"user": user, "access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me",response_model=UserRead)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    await ensure_avatar_url(current_user, session)
     return current_user
