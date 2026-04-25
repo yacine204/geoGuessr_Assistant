@@ -1,5 +1,5 @@
 import service.conversation as conversation_service
-from models.conversation import ConversationDelete, ConversationRead
+from models.conversation import ConversationRead
 from models.user import User
 from fastapi import APIRouter, Depends, HTTPException, status, Path, UploadFile, File, Form
 from database.db import get_async_session
@@ -67,3 +67,11 @@ async def Delete(conversation_id: int = Path(..., alias="conversation_id")
             detail="couldnt delete conversation"
         )
     return {"deleted conversation status": deleted_convo}
+
+@router.get('/my_convos', response_model=list[ConversationRead])
+async def MyConversations(
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    conversations = await conversation_service.GetUserConvos(current_user.id, session)
+    return conversations or []
