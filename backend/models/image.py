@@ -13,4 +13,7 @@ class Image(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     conversation_id: int = Field(foreign_key="conversation.conversation_id")
     conversation: Optional["Conversation"] = Relationship(back_populates="images")
-    reply: Optional["Reply"] = Relationship(back_populates="image")
+    reply: Optional["Reply"] = Relationship(
+        back_populates="image",
+        sa_relationship_kwargs={"uselist": False},
+    )

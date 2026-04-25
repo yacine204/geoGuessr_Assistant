@@ -59,7 +59,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Globe cord={sampleCord}></Globe>}></Route>
-
+      
       {/* testing components */}
       <Route path="/navmenu" element={<NavMenu cord={sampleCord}></NavMenu>}/>
     </Routes>
