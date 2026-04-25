@@ -1,6 +1,8 @@
 geo_venv/
 __pycache__/
 .env
+backend/.env
+backend/db.env
 tests/
 detections/
 datasets/
