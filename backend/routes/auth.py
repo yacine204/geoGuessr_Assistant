@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
 from models.user import User, UserCreate, UserRead, RegisterResponse
 from database.db import get_async_session
@@ -36,6 +37,15 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_as
             detail = "Email already in use"
         )
 
+    if user_data.pseudo:
+        pseudo_result = await session.execute(select(User).where(User.pseudo == user_data.pseudo))
+        existing_pseudo = pseudo_result.scalars().first()
+        if existing_pseudo:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Pseudo already in use"
+            )
+
     hashed_password = hash_password(user_data.password)
     new_user = User(
         pseudo=user_data.pseudo,
@@ -45,7 +55,14 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_as
     new_user.avatar_url = new_user.generate_avatar_url()
 
     session.add(new_user)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email or pseudo already in use"
+        )
     await session.refresh(new_user)
 
     access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))

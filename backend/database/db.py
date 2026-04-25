@@ -1,9 +1,14 @@
 from dotenv import load_dotenv
+from pathlib import Path
 import os
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from typing import AsyncGenerator
 
-env = load_dotenv()
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DB_ENV_PATH = BACKEND_ROOT / "db.env"
+
+# Always load DB settings from backend/db.env, independent of current working directory.
+load_dotenv(DB_ENV_PATH)
 
 host = os.getenv("DB_HOST")
 password = os.getenv("DB_PASSWORD")
