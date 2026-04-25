@@ -1,120 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import {Routes, Route} from "react-router-dom"
 import './App.css'
+import Globe from './pages/globe'
+import NavMenu from "./pages/navMenu"
+
+const sampleCord = {
+    "YOLO_detections": {
+        "dominant_convention": "vienna",
+        "bias": 1.0
+    },
+    "sign_detection": {
+        "detected": "vienna",
+        "conf": 0.8475127816200256
+    },
+    "ocr_detections": "22 D34\nLe Perreux-sur-Marne, Ile-de-France\nGoogle Street View\njuil: 2022\nVoir plus de dates\nLa;\nD 34\n0108\nCHELLES\nNEuILLY\n4\nMARNE\nBOULANGER\nPATISSIER\nLA\nMALTOURNEE\nCpoottno\nPiscine\n8\n23\nPourquoi Pas?\nReq\n016\nGoogle Maps\nDudol\nDe\nJadera\n2\nJveco\natodie\nVictor =\nRue",
+    "language": "fr",
+    "safe_geolocalization": {
+        "lon": 2.8141723333333335,
+        "lat": 48.5265485
+    },
+    "candidates": [
+        {
+            "lat": 48.8406252,
+            "lon": 2.5076601
+        },
+        {
+            "lat": 49.3549458,
+            "lon": 3.0344372
+        },
+        {
+            "lat": 48.9321383,
+            "lon": 1.4209125
+        },
+        {
+            "lat": 48.961264,
+            "lon": 4.3122436
+        },
+        {
+            "lat": 43.4881697,
+            "lon": 1.0792114
+        }
+    ],
+    "top_countries": [
+        "France",
+        "Belgium",
+        "Switzerland",
+        "Germany",
+        "United Kingdom",
+        "Spain",
+        "Netherlands",
+        "Italy",
+        "Russia",
+        "Luxembourg"
+    ]
+}
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      <Route path="/" element={<Globe cord={sampleCord}></Globe>}></Route>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* testing components */}
+      <Route path="/navmenu" element={<NavMenu cord={sampleCord}></NavMenu>}/>
+    </Routes>
   )
 }
 

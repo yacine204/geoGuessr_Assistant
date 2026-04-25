@@ -19,3 +19,5 @@ class Conversation(SQLModel, table=True):
     user_id : int = Field(foreign_key="user.user_id")
     user: Optional["User"] = Relationship(back_populates="conversations")
     images: List["Image"] = Relationship(back_populates="conversation")
+
+    
