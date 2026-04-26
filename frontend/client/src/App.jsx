@@ -3,6 +3,7 @@ import './App.css'
 import Globe from './components/globe/globe'
 import NavMenu from "./components/navMenu/navMenu"
 import LoginPage from "./pages/LoginPage"
+import Chat from "./components/chat/chat"
 const sampleCord = {
     "YOLO_detections": {
         "dominant_convention": "vienna",
@@ -61,6 +62,7 @@ function App() {
       <Route path="/" element={<Globe cord={sampleCord}></Globe>}></Route>
       {/* testing components */}
       <Route path="/navmenu" element={<NavMenu cord={sampleCord}></NavMenu>}/>
+      <Route path="/chat" element={<Chat></Chat>}/>
     </Routes>
   )
 }
