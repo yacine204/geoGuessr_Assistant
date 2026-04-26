@@ -4,6 +4,8 @@ Street-level image analysis pipeline that extracts geographic clues from images
 (road signs, architecture, language) using YOLOv8, OCR, and OpenStreetMap
 to infer country and region.
 
+![showcase](showcase.png)
+
 ## Stack
 - **end_logic** — YOLOv8 detection, OCR, Overpass/Nominatim queries
 - **backend** — API serving end_logic results
