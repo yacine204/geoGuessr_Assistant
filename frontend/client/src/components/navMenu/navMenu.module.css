@@ -1,0 +1,149 @@
+/* Custom Geospatial Dark Theme with 3D Buttons */
+
+.container {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 20px;
+  color: #d0d0d0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+.innerContainer {
+  position: relative;
+  z-index: 2;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Base button style */
+.button {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  position: relative;
+  transition: all 0.15s ease;
+  border: none;
+  border-top: 2px solid;
+  border-left: 2px solid;
+  border-right: 2px solid;
+  border-bottom: 3px solid;
+  outline: none;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.button:active {
+  transform: translateY(2px);
+  border-bottom: 1px solid;
+}
+
+.button:hover {
+  filter: brightness(1.15);
+}
+
+/* Accuracy Level 1 - Most Accurate (Green) */
+.button:nth-child(1) {
+  background: linear-gradient(135deg, #2a5a3a, #1f4030);
+  border-top-color: #4a8a5a;
+  border-left-color: #4a8a5a;
+  border-right-color: #1a2a1a;
+  border-bottom-color: #0f1f0f;
+  color: #90e090;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Accuracy Level 2 (Light Green) */
+.button:nth-child(2) {
+  background: linear-gradient(135deg, #4a6a2a, #3a5a1a);
+  border-top-color: #7a9a4a;
+  border-left-color: #7a9a4a;
+  border-right-color: #2a3a0a;
+  border-bottom-color: #1a2a00;
+  color: #c0e060;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 16px;
+  color: #a0a0a0;
+  border-bottom: 1px solid #333333;
+  padding-bottom: 10px;
+}
+
+.listContainer {
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 12px;
+  background: linear-gradient(to bottom, #0d0d0d, #0f0f0f);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.listItem {
+  padding: 10px 12px;
+  margin: 3px 0;
+  color: #b0b0b0;
+  border-radius: 3px;
+  background: #1a1a1a;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  border: 1px solid #2a2a2a;
+  cursor: pointer;
+}
+
+.listItem:hover {
+  background: #252525;
+  border-color: #404040;
+  color: #d0d0d0;
+}
+
+.listItem:active {
+  background: #1f1f1f;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .container {
+    padding: 16px;
+  }
+
+  .buttonGroup {
+    gap: 8px;
+  }
+
+  .button {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .title {
+    font-size: 11px;
+  }
+
+  .listItem {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+}

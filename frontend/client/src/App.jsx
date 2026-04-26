@@ -1,8 +1,8 @@
 import {Routes, Route} from "react-router-dom"
 import './App.css'
-import Globe from './pages/globe'
-import NavMenu from "./pages/navMenu"
-
+import Globe from './components/globe/globe'
+import NavMenu from "./components/navMenu/navMenu"
+import LoginPage from "./pages/LoginPage"
 const sampleCord = {
     "YOLO_detections": {
         "dominant_convention": "vienna",
@@ -59,7 +59,6 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Globe cord={sampleCord}></Globe>}></Route>
-      
       {/* testing components */}
       <Route path="/navmenu" element={<NavMenu cord={sampleCord}></NavMenu>}/>
     </Routes>

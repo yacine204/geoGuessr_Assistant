@@ -1,0 +1,33 @@
+/* Globe Component Styles */
+
+.container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.canvasContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.navMenuWrapper {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+}
+
+.infoPanel {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
