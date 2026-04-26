@@ -74,6 +74,16 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+.clearButton {
+  background: linear-gradient(135deg, #6a2a2a, #4a1f1f);
+  border-top-color: #9a4a4a;
+  border-left-color: #9a4a4a;
+  border-right-color: #2a0a0a;
+  border-bottom-color: #1a0000;
+  color: #ffb0b0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 .title {
   font-size: 12px;
   font-weight: 700;

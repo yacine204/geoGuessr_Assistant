@@ -1,5 +1,5 @@
 import service.conversation as conversation_service
-from models.conversation import ConversationRead
+from models.conversation import ConversationRead, ConversationDetailRead
 from models.user import User
 from fastapi import APIRouter, Depends, HTTPException, status, Path, UploadFile, File, Form
 from database.db import get_async_session
@@ -121,16 +121,16 @@ async def Delete(conversation_id: int = Path(..., alias="conversation_id")
                  ,session: AsyncSession = Depends(get_async_session)):
     
     deleted_convo = await conversation_service.DeleteConversation(conversation_id, session)
-    if deleted_convo is None:
+    if not deleted_convo:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="couldnt delete conversation"
         )
     return {"deleted conversation status": deleted_convo}
 
 @router.get(
     '/my_convos',
-    response_model=list[ConversationRead],
+    response_model=list[ConversationDetailRead],
     summary="List my conversations",
     description="Returns all conversations for the authenticated user.",
 )
@@ -140,3 +140,29 @@ async def MyConversations(
 ):
     conversations = await conversation_service.GetUserConvos(current_user.id, session)
     return conversations or []
+
+
+@router.get(
+    '/detail/{conversation_id}',
+    response_model=ConversationDetailRead,
+    summary="Get a conversation with messages",
+    description="Returns a conversation and all of its images with replies for the authenticated user.",
+)
+async def ConversationDetail(
+    conversation_id: int = Path(..., alias="conversation_id"),
+    session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user),
+):
+    conversation = await conversation_service.GetConversationById(
+        conversation_id,
+        current_user.id,
+        session,
+    )
+
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="conversation not found",
+        )
+
+    return conversation

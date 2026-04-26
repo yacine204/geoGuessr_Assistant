@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import { useCallback } from 'react';
 import { loginRequest, signupRequest } from '../services/authService';
 
-const TOKEN_KEY = 'geo_token';
+const TOKEN_KEY = 'access_token';
 
 const AuthContext = createContext(null);
 

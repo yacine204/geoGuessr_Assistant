@@ -5,7 +5,11 @@ import WorldData from 'geojson-world-map';
 import { CITY_CENTROIDS, COUNTRY_CENTROIDS } from '../../types/regions';
 import NavMenu from '../navMenu/navMenu';
 import CameraInfo from '../cameraInfo/cameraInfo';
+import Chat from '../chat/chat';
 import styles from './globe.module.css';
+
+const LIVE_CORD_STORAGE_KEY = 'geoseer.chat.cord.v1';
+const LIVE_CORD_EVENT = 'geoseer:cord-update';
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
@@ -112,6 +116,17 @@ function nearestCityLabel(lat, lon) {
   return nearest ?? `Lat ${lat.toFixed(3)}, Lon ${lon.toFixed(3)}`;
 }
 
+function readStoredCord() {
+  try {
+    const raw = window.localStorage.getItem(LIVE_CORD_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function Globe({ cord = null }) {
   const mountRef = useRef(null);
   const focusLocationRef = useRef(null);
@@ -124,8 +139,47 @@ function Globe({ cord = null }) {
   const [isPaused, setIsPaused] = useState(false);
   const [selectedCountryName, setSelectedCountryName] = useState(null);
 
-  const resolvedPoints = pointsFromCord(cord);
-  const topCountryCenters = topCountryCentersFromCord(cord);
+  const [activeCord, setActiveCord] = useState(() => {
+    if (typeof window === 'undefined') {
+      return cord;
+    }
+    return readStoredCord() || cord;
+  });
+
+  useEffect(() => {
+    const onCordUpdate = (event) => {
+      const payload = event?.detail;
+      setActiveCord(payload && typeof payload === 'object' ? payload : null);
+    };
+
+    const onStorage = (event) => {
+      if (event.key !== LIVE_CORD_STORAGE_KEY) {
+        return;
+      }
+      if (!event.newValue) {
+        setActiveCord(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(event.newValue);
+        setActiveCord(parsed && typeof parsed === 'object' ? parsed : null);
+      } catch {
+        // ignore malformed storage payloads
+        setActiveCord(null);
+      }
+    };
+
+    window.addEventListener(LIVE_CORD_EVENT, onCordUpdate);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener(LIVE_CORD_EVENT, onCordUpdate);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  const resolvedPoints = pointsFromCord(activeCord);
+  const topCountryCenters = topCountryCentersFromCord(activeCord);
 
   const safePoint = resolvedPoints.find((point) => point?.source === 'safe');
   const candidatePoints = resolvedPoints.filter((point) => point?.source === 'candidate');
@@ -193,6 +247,17 @@ function Globe({ cord = null }) {
       if (controlsRef.current) controlsRef.current.autoRotate = !next;
       return next;
     });
+  };
+
+  const onClearCurrentCord = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(LIVE_CORD_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent(LIVE_CORD_EVENT, { detail: null }));
+    }
+    setActiveCord(null);
+    setCandidateIndex(-1);
+    setSelectedCountryName(null);
+    setLocationLabel(defaultLocationLabel);
   };
 
   useEffect(() => {
@@ -468,19 +533,23 @@ function Globe({ cord = null }) {
       renderer.dispose();
       if (renderer.domElement.parentNode === container) container.removeChild(renderer.domElement);
     };
-  }, [cord]);
+  }, [activeCord]);
 
   return (
     <div className={styles.container}>
       <div ref={mountRef} className={styles.canvasContainer} />
+      <div className={styles.chatOverlay}>
+        <Chat compact panelHeight="76vh" />
+      </div>
       <div className={styles.navMenuWrapper}>
         <NavMenu
-          cord={cord}
+          cord={activeCord}
           currentCord={safePoint?.coordinate || candidatePoints[0]?.coordinate}
           isPaused={isPaused}
           onTogglePause={onTogglePause}
           onNextCandidate={onGoToNextCandidate}
           onCountrySelect={onGoToCountry}
+          onClearCurrentCord={onClearCurrentCord}
           topCountryCenters={topCountryCenters}
           selectedCountryName={selectedCountryName}
           onUnlockCountry={onUnlockCountry}

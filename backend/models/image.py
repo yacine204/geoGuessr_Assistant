@@ -15,5 +15,5 @@ class Image(SQLModel, table=True):
     conversation: Optional["Conversation"] = Relationship(back_populates="images")
     reply: Optional["Reply"] = Relationship(
         back_populates="image",
-        sa_relationship_kwargs={"uselist": False},
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "uselist": False},
     )

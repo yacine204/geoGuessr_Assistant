@@ -1,0 +1,30 @@
+html,
+body,
+#root {
+    margin: 0;
+    height: 100vh;
+}
+
+.homeSplitLayout {
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #080808;
+}
+
+.homeGlobePane {
+    min-width: 0;
+    min-height: 0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.homeChatPane {
+    width: fit-content;
+    display: flex;
+    align-items: stretch;
+}

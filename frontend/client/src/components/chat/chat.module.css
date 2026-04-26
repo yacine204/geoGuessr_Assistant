@@ -1,0 +1,221 @@
+.root {
+  min-width: 0;
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+  border: 1px solid rgba(130, 130, 130, 0.28);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 30px -12px rgba(0, 0, 0, 0.6);
+  font-family: Lora, Georgia, serif;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  background: rgba(17, 17, 17, 0.62);
+}
+
+.header {
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  border-bottom: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(22, 22, 22, 0.7);
+}
+
+.title {
+  margin: 0;
+  color: #f5f1e8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.subtitle {
+  margin: 2px 0 0 0;
+  font-size: 10px;
+  color: #9a9a9a;
+}
+
+.historyWrap {
+  position: relative;
+}
+
+.historyButton {
+  padding: 6px 10px;
+  border: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(10, 10, 10, 0.75);
+  color: #e8e8e8;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.historyDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  max-height: 300px;
+  overflow: auto;
+  background: rgba(20, 20, 20, 0.92);
+  border: 1px solid rgba(130, 130, 130, 0.25);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  z-index: 10;
+}
+
+.historyHeader {
+  padding: 12px;
+  border-bottom: 1px solid rgba(130, 130, 130, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.historyHeaderTitle {
+  color: #e8e8e8;
+  font-size: 12px;
+}
+
+.historyNewButton {
+  border: none;
+  background: transparent;
+  color: #9a9a9a;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.historyEmpty {
+  color: #9a9a9a;
+  font-size: 11px;
+  padding: 12px;
+}
+
+.historyItem {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1f1f1f;
+  cursor: pointer;
+  background: transparent;
+}
+
+.historyItemSelected {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.messagesArea {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(17, 17, 17, 0.45);
+}
+
+.messageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.userBubble {
+  width: 62%;
+  min-width: 180px;
+  border: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(15, 15, 15, 0.72);
+  border-radius: 12px 12px 4px 12px;
+  padding: 8px;
+}
+
+.assistantBubble {
+  max-width: 82%;
+  border: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(27, 27, 27, 0.76);
+  border-radius: 12px 12px 12px 4px;
+  padding: 8px 10px;
+}
+
+.dock {
+  border-top: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(22, 22, 22, 0.72);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dockButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.dockButton {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid rgba(130, 130, 130, 0.25);
+  background: rgba(10, 10, 10, 0.78);
+  color: #e8e8e8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.dockButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alert {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.alertError {
+  background: rgba(200, 50, 50, 0.08);
+  border: 1px solid rgba(200, 50, 50, 0.25);
+  color: #d08080;
+}
+
+.alertSuccess {
+  background: rgba(80, 150, 80, 0.08);
+  border: 1px solid rgba(80, 150, 80, 0.25);
+  color: #99c99c;
+}
+
+.resizeRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 30;
+}
+
+.resizeBottom {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 30;
+}
+
+.resizeCorner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  z-index: 31;
+  border-top: 1px solid #3a3a3a;
+  border-left: 1px solid #3a3a3a;
+  border-top-left-radius: 4px;
+  background: #1a1a1a;
+}

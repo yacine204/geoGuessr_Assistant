@@ -12,8 +12,10 @@
   "dependencies": {
     "axios": "^1.15.2",
     "geojson-world-map": "^0.0.2",
+    "leaflet": "^1.9.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.14.2",
     "three": "^0.184.0"
   },

@@ -3,6 +3,8 @@ from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from routes.auth import router as auth_router
 from routes.guess import router as guess_router
 from routes.cloudinary import router as cloudinary_router
@@ -41,6 +43,10 @@ app.include_router(auth_router)
 app.include_router(guess_router)
 app.include_router(cloudinary_router)
 app.include_router(conversation_router)
+
+tmp_uploads_dir = Path(__file__).resolve().parent / "tmp_uploads"
+tmp_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/tmp_uploads", StaticFiles(directory=str(tmp_uploads_dir)), name="tmp_uploads")
 
 
 @app.exception_handler(RequestValidationError)

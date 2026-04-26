@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GeoSeer — Image-to-Location Assistant</title>
+<meta name="description" content="Upload an image. GeoSeer estimates where it was taken on an interactive map." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { display: ['Lora','Georgia','serif'], serif: ['Lora','Georgia','serif'] },
+        colors: {
+          ink:    { 950:'#0b0b0b', 900:'#111111', 850:'#161616', 800:'#1c1c1c', 750:'#222222', 700:'#2a2a2a', 600:'#3a3a3a' },
+          paper:  '#f5f1e8',
+          line:   '#262626',
+          accent: '#d9d4c7'
+        },
+        boxShadow: {
+          inset1: 'inset 0 1px 0 0 rgba(255,255,255,0.04)',
+          plate:  '0 1px 0 rgba(255,255,255,0.04), 0 12px 30px -12px rgba(0,0,0,0.6)'
+        },
+        keyframes: {
+          'fade-in-up': { '0%':{opacity:0, transform:'translateY(8px)'}, '100%':{opacity:1, transform:'translateY(0)'} },
+          'pulse-soft': { '0%,100%':{opacity:.35}, '50%':{opacity:1} },
+          'shimmer':    { '0%':{backgroundPosition:'-200% 0'}, '100%':{backgroundPosition:'200% 0'} }
+        },
+        animation: {
+          'fade-in-up':'fade-in-up .35s ease-out both',
+          'pulse-soft':'pulse-soft 1.4s ease-in-out infinite',
+          'shimmer':   'shimmer 2.4s linear infinite'
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  :root {
+    --ink-900:#111111; --ink-850:#161616; --ink-800:#1c1c1c; --ink-750:#222222;
+    --ink-700:#2a2a2a; --ink-600:#3a3a3a; --paper:#f5f1e8; --accent:#d9d4c7;
+  }
+  html, body, #root { height:100%; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 12% -10%, rgba(255,255,255,0.04), transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, rgba(255,255,255,0.025), transparent 60%),
+      #111111;
+    color: var(--paper);
+    font-family: 'Lora', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "liga","kern","onum";
+  }
+  ::selection { background:#3a3a3a; color:#fff; }
+
+  /* Subtle paper grain */
+  .grain::before {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* Hairline divider w/ a soft highlight */
+  .hairline { box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 0 rgba(0,0,0,0.5); }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#222; border-radius:999px; border:2px solid transparent; background-clip:content-box; }
+  ::-webkit-scrollbar-thumb:hover { background:#333; background-clip:content-box; }
+
+  /* Leaflet — recolor for dark monochrome */
+  .leaflet-container { background:#161616; font-family:'Lora',Georgia,serif; }
+  .leaflet-control-zoom a, .leaflet-bar a {
+    background:#1c1c1c !important; color:#f5f1e8 !important;
+    border-color:#2a2a2a !important; font-family:'Lora',serif !important;
+  }
+  .leaflet-control-zoom a:hover { background:#2a2a2a !important; }
+  .leaflet-control-attribution {
+    background:rgba(0,0,0,0.55) !important; color:#cfcabd !important;
+    backdrop-filter:blur(6px); font-family:'Lora',serif !important;
+  }
+  .leaflet-control-attribution a { color:#f5f1e8 !important; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background:#161616 !important; color:#f5f1e8 !important;
+    border-radius:6px; border:1px solid #262626;
+  }
+  .leaflet-popup-content { font-family:'Lora',serif !important; margin:10px 12px; }
+
+  /* Crosshair pulse for primary marker */
+  @keyframes ring { 0%{transform:scale(0.6); opacity:.6} 100%{transform:scale(2.2); opacity:0} }
+  .marker-ring::after{
+    content:""; position:absolute; inset:-6px; border-radius:9999px;
+    border:1px solid rgba(245,241,232,0.7); animation: ring 1.8s ease-out infinite;
+  }
+
+  /* Drop number tabular */
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Shimmer for loading band */
+  .shimmer-bg {
+    background-image: linear-gradient(90deg, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.0) 100%);
+    background-size: 200% 100%;
+  }
+</style>
+
+<!-- React, ReactDOM, Babel for in-browser JSX, Leaflet -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+
+<body class="antialiased">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+/* ---------------- Storage ---------------- */
+const KEYS = {
+  conv:   'geoseer.conversations.v1',
+  active: 'geoseer.activeConversationId.v1',
+  user:   'geoseer.user.v1',
+  theme:  'geoseer.mapTheme.v1',
+};
+const storage = {
+  load(k, fb=null){ try { const r=localStorage.getItem(k); return r?JSON.parse(r):fb; } catch{return fb;} },
+  save(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch{} },
+  raw:  k => localStorage.getItem(k),
+  rawSet:(k,v)=> v==null?localStorage.removeItem(k):localStorage.setItem(k,v),
+  clear(){ Object.values(KEYS).forEach(k=>localStorage.removeItem(k)); }
+};
+
+/* ---------------- Mock guess engine ---------------- */
+const PLACES = [
+  { lat:48.8584, lng:2.2945,   placeName:'Champ de Mars, Paris',          country:'France' },
+  { lat:35.6595, lng:139.7005, placeName:'Shibuya Crossing, Tokyo',       country:'Japan' },
+  { lat:40.7580, lng:-73.9855, placeName:'Times Square, New York',        country:'United States' },
+  { lat:-22.9519,lng:-43.2105, placeName:'Christ the Redeemer, Rio',      country:'Brazil' },
+  { lat:51.5007, lng:-0.1246,  placeName:'Westminster, London',           country:'United Kingdom' },
+  { lat:37.8199, lng:-122.4783,placeName:'Golden Gate Bridge, SF',        country:'United States' },
+  { lat:41.8902, lng:12.4922,  placeName:'Colosseum, Rome',               country:'Italy' },
+  { lat:-33.8568,lng:151.2153, placeName:'Sydney Opera House',            country:'Australia' },
+  { lat:25.1972, lng:55.2744,  placeName:'Burj Khalifa, Dubai',           country:'UAE' },
+  { lat:64.1466, lng:-21.9426, placeName:'Reykjavík',                     country:'Iceland' },
+  { lat:-13.1631,lng:-72.5450, placeName:'Machu Picchu',                  country:'Peru' },
+  { lat:30.3285, lng:35.4444,  placeName:'Petra',                         country:'Jordan' },
+];
+const REASONS = [
+  'Architectural cues, signage typography, and ambient light suggest a temperate, urban setting.',
+  'Vegetation density and roof tile geometry point toward a Mediterranean coastal region.',
+  'Road markings, license plate format, and pole-mounted signage indicate a North American context.',
+  'Atmospheric haze, mountainous backdrop, and timber construction imply a high-altitude village.',
+  'Tropical foliage and humidity cues are consistent with equatorial latitudes.',
+];
+const CUES = ['Sky tone','Vegetation','Architecture','Road markings','Signage script','Vehicle profile'];
+const hash = s => { let h=2166136261>>>0; for (let i=0;i<s.length;i++){h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; };
+const jitter = (seed,a) => { const x=Math.sin(seed)*10000; return ((x-Math.floor(x))*2-1)*a; };
+
+function generateMockGuess(seedKey){
+  const s = hash(seedKey);
+  const p = PLACES[s % PLACES.length];
+  const reasoning = REASONS[(s>>5) % REASONS.length];
+  const confidence = Math.round((0.55 + (s % 40)/100) * 100)/100;
+  const alternates = [0,1,2].map(i => ({
+    coords: { lat: p.lat + jitter(s+i*13,1.5), lng: p.lng + jitter(s+i*29,1.5) },
+    label: `Alternate ${i+1}`,
+    confidence: Math.max(0.05, confidence - 0.15 - i*0.1),
+  }));
+  // 3 cue chips deterministically chosen
+  const cues = [...CUES].sort((a,b)=>hash(a+seedKey) - hash(b+seedKey)).slice(0,3);
+  return { primary:{lat:p.lat,lng:p.lng}, placeName:p.placeName, country:p.country, confidence, reasoning, alternates, cues };
+}
+const fileToDataUrl = file => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+/* ---------------- Tile layers ---------------- */
+const TILE_LAYERS = {
+  dark:      { url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',           attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd' },
+  light:     { url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',          attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd' },
+  satellite: { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution:'Tiles &copy; Esri' },
+  terrain:   { url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution:'&copy; OpenStreetMap, SRTM | &copy; OpenTopoMap', subdomains:'abc' },
+};
+
+/* ---------------- Inline icons (no external SVG) ---------------- */
+const Icon = ({d, className='h-4 w-4', stroke='currentColor', fill='none', strokeWidth=1.5}) => (
+  <svg viewBox="0 0 24 24" className={className} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const I = {
+  menu:    <Icon d={<><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>} />,
+  plus:    <Icon d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />,
+  msg:     <Icon d={<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>} />,
+  trash:   <Icon d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>} />,
+  pencil:  <Icon d={<><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></>} />,
+  check:   <Icon d={<polyline points="20 6 9 17 4 12"/>} />,
+  x:       <Icon d={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />,
+  upload:  <Icon d={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>} />,
+  image:   <Icon d={<><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>} />,
+  copy:    <Icon d={<><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>} />,
+  logout:  <Icon d={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>} />,
+  user:    <Icon d={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
+  compass: <Icon d={<><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>} />,
+  pin:     <Icon d={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>} />,
+  arrow:   <Icon d={<><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>} />,
+};
+
+/* ---------------- Map view ---------------- */
+function MapView({ guess, theme, height=320 }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const tileRef = useRef(null);
+  const groupRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    const map = L.map(containerRef.current, {
+      center:[guess.primary.lat, guess.primary.lng], zoom:5,
+      zoomControl:true, attributionControl:true, scrollWheelZoom:true,
+    });
+    mapRef.current = map;
+    groupRef.current = L.layerGroup().addTo(map);
+    return () => { map.remove(); mapRef.current=null; tileRef.current=null; groupRef.current=null; };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current; if (!map) return;
+    if (tileRef.current) map.removeLayer(tileRef.current);
+    const cfg = TILE_LAYERS[theme];
+    const opts = { attribution: cfg.attribution, maxZoom: 19 };
+    if (cfg.subdomains) opts.subdomains = cfg.subdomains;
+    tileRef.current = L.tileLayer(cfg.url, opts).addTo(map);
+  }, [theme]);
+
+  useEffect(() => {
+    const map = mapRef.current, group = groupRef.current; if (!map || !group) return;
+    group.clearLayers();
+    const center = [guess.primary.lat, guess.primary.lng];
+
+    const primaryIcon = L.divIcon({
+      className:'',
+      html:`<div class="relative marker-ring" style="width:14px;height:14px;border-radius:9999px;background:#f5f1e8;border:2px solid #111;box-shadow:0 0 0 3px rgba(245,241,232,0.18),0 6px 14px rgba(0,0,0,0.6)"></div>`,
+      iconSize:[14,14], iconAnchor:[7,7],
+    });
+    const altIcon = L.divIcon({
+      className:'',
+      html:`<div style="width:10px;height:10px;border-radius:9999px;background:transparent;border:1.5px dashed rgba(245,241,232,0.6)"></div>`,
+      iconSize:[10,10], iconAnchor:[5,5],
+    });
+
+    const primary = L.marker(center, { icon: primaryIcon })
+      .bindPopup(
+        `<div style="font-family:Lora,serif;line-height:1.4">
+           <strong style="font-size:14px">${guess.placeName}</strong><br/>
+           <span style="color:#bfbaad;font-size:12px">${guess.country}</span><br/>
+           <span style="color:#9d978a;font-size:11px;font-variant-numeric:tabular-nums">
+             ${guess.primary.lat.toFixed(4)}, ${guess.primary.lng.toFixed(4)}
+           </span>
+         </div>`).addTo(group);
+
+    // Connector lines from alternates to primary
+    const all = [center];
+    (guess.alternates||[]).forEach(a => {
+      const ll = [a.coords.lat, a.coords.lng];
+      L.polyline([center, ll], { color:'#f5f1e8', opacity:0.18, weight:1, dashArray:'2,4' }).addTo(group);
+      L.marker(ll, { icon: altIcon }).bindTooltip(`${a.label} · ${(a.confidence*100).toFixed(0)}%`, { direction:'top' }).addTo(group);
+      all.push(ll);
+    });
+
+    if (all.length > 1) map.fitBounds(L.latLngBounds(all).pad(0.4), { animate:true });
+    else map.setView(center, 6, { animate:true });
+    primary.openPopup();
+    setTimeout(() => map.invalidateSize(), 60);
+  }, [guess]);
+
+  return (
+    <div className="relative">
+      <div ref={containerRef} className="w-full overflow-hidden rounded-md border border-line" style={{ height }} aria-label={`Map showing estimated location: ${guess.placeName}`} />
+      {/* Crosshair frame overlay */}
+      <div className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-white/5"></div>
+      <div className="pointer-events-none absolute left-2 top-2 text-[10px] uppercase tracking-[0.22em] text-paper/50 bg-ink-900/60 backdrop-blur px-1.5 py-0.5 rounded border border-line">
+        N · {guess.primary.lat.toFixed(2)}° · {guess.primary.lng.toFixed(2)}°
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Sidebar ---------------- */
+function groupByDate(convs){
+  const today=[], week=[], older=[]; const now=Date.now(), day=86400000;
+  [...convs].sort((a,b)=>b.updatedAt-a.updatedAt).forEach(c => {
+    const age = now - c.updatedAt;
+    if (age < day) today.push(c);
+    else if (age < day*7) week.push(c);
+    else older.push(c);
+  });
+  return { today, week, older };
+}
+
+function Sidebar({ open, onClose, conversations, activeId, user, onSelect, onNew, onDelete, onRename, onSignOut }) {
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const groups = groupByDate(conversations);
+
+  const Item = (c) => {
+    const active = c.id === activeId;
+    const editing = editingId === c.id;
+    return (
+      <li key={c.id}>
+        <div className={`group relative flex items-center gap-2 rounded-md px-2 py-2 text-[13px] transition-colors ${active ? 'bg-ink-800 text-paper' : 'text-paper/65 hover:bg-ink-850 hover:text-paper'}`}>
+          {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-r bg-paper/80"></span>}
+          <span className="text-paper/40">{I.msg}</span>
+          {editing ? (
+            <form className="flex flex-1 items-center gap-1" onSubmit={e => { e.preventDefault(); onRename(c.id, draft.trim()); setEditingId(null); }}>
+              <input autoFocus value={draft} onChange={e=>setDraft(e.target.value)} onBlur={()=>{onRename(c.id, draft.trim()); setEditingId(null);}}
+                     className="flex-1 bg-transparent text-[13px] outline-none ring-1 ring-line rounded px-1 py-0.5"/>
+              <button type="submit" className="opacity-70 hover:opacity-100">{I.check}</button>
+            </form>
+          ) : (
+            <button onClick={()=>onSelect(c.id)} className="flex-1 truncate text-left" title={c.title}>{c.title}</button>
+          )}
+          {!editing && (
+            <div className="hidden gap-1 group-hover:flex">
+              <button onClick={(e)=>{e.stopPropagation(); setEditingId(c.id); setDraft(c.title);}} className="rounded p-1 text-paper/55 hover:bg-ink-700 hover:text-paper" aria-label="Rename">{I.pencil}</button>
+              <button onClick={(e)=>{e.stopPropagation(); onDelete(c.id);}} className="rounded p-1 text-paper/55 hover:bg-ink-700 hover:text-paper" aria-label="Delete">{I.trash}</button>
+            </div>
+          )}
+        </div>
+      </li>
+    );
+  };
+
+  const Section = ({label, items}) => items.length === 0 ? null : (
+    <div className="mt-5 first:mt-0">
+      <div className="px-2 pb-1 text-[10px] uppercase tracking-[0.22em] text-paper/35 italic">{label}</div>
+      <ul className="space-y-0.5">{items.map(Item)}</ul>
+    </div>
+  );
+
+  return (
+    <>
+      <div onClick={onClose} className={`fixed inset-0 z-30 bg-black/60 backdrop-blur-sm transition-opacity md:hidden ${open ? 'opacity-100':'pointer-events-none opacity-0'}`}/>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-line bg-ink-950 text-paper transition-transform duration-300 ${open ? 'translate-x-0':'-translate-x-full'}`} aria-label="Chat history">
+        {/* Brand */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 hairline">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-full border border-line bg-ink-850 text-paper/80">{I.compass}</span>
+            <div className="leading-tight">
+              <div className="font-display text-[15px] tracking-wide">GeoSeer</div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-paper/40">Atlas of Inquiry</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1.5 text-paper/55 hover:bg-ink-800 hover:text-paper md:hidden" aria-label="Close menu">{I.x}</button>
+        </div>
+
+        <div className="px-3 pt-3">
+          <button onClick={onNew} className="group flex w-full items-center justify-between gap-2 rounded-md border border-line bg-ink-850 px-3 py-2 text-[13px] hover:bg-ink-800">
+            <span className="flex items-center gap-2"><span className="text-paper/70">{I.plus}</span><span>New investigation</span></span>
+            <span className="text-paper/30 transition-transform group-hover:translate-x-0.5">{I.arrow}</span>
+          </button>
+        </div>
+
+        <nav className="mt-2 flex-1 overflow-y-auto px-2 py-2">
+          {conversations.length === 0 ? (
+            <div className="px-3 py-10 text-center">
+              <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-full border border-dashed border-line text-paper/40">{I.image}</div>
+              <p className="text-xs italic text-paper/45">No conversations yet.<br/>Upload an image to begin.</p>
+            </div>
+          ) : (<>
+            <Section label="Today"        items={groups.today} />
+            <Section label="Past 7 days"  items={groups.week} />
+            <Section label="Earlier"      items={groups.older} />
+          </>)}
+        </nav>
+
+        {/* Account */}
+        <div className="border-t border-line p-2 relative">
+          <button onClick={()=>setMenuOpen(v=>!v)} className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-[13px] hover:bg-ink-850" aria-haspopup="menu" aria-expanded={menuOpen}>
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-ink-800 text-[11px] tracking-widest border border-line">{user?.initials || 'RS'}</span>
+            <span className="flex-1 truncate">
+              <span className="block truncate font-medium leading-tight">{user?.name || 'Researcher'}</span>
+              <span className="block truncate text-[11px] text-paper/45">{user?.email}</span>
+            </span>
+            <span className="text-paper/40">{I.user}</span>
+          </button>
+          {menuOpen && (
+            <div className="absolute bottom-full left-2 right-2 mb-2 rounded-md border border-line bg-ink-850 p-1 shadow-plate animate-fade-in-up">
+              <div className="px-2 py-2">
+                <div className="text-[13px]">{user?.name}</div>
+                <div className="text-[11px] text-paper/50">{user?.email}</div>
+              </div>
+              <div className="my-1 h-px bg-line"></div>
+              <button onClick={()=>{ setMenuOpen(false); onSignOut(); }} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] text-red-300 hover:bg-ink-800">
+                {I.logout}<span>Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
+
+/* ---------------- Upload dock ---------------- */
+function UploadDock({ onSubmit, disabled, compact }) {
+  const inputRef = useRef(null);
+  const [drag, setDrag] = useState(false);
+
+  const onFiles = (files) => {
+    if (!files || !files.length) return;
+    const f = files[0]; if (!f.type.startsWith('image/')) return;
+    onSubmit(f);
+  };
+
+  return (
+    <div
+      onDragOver={e=>{e.preventDefault(); if(!disabled) setDrag(true);}}
+      onDragLeave={()=>setDrag(false)}
+      onDrop={e=>{e.preventDefault(); setDrag(false); if(disabled) return; onFiles(e.dataTransfer.files);}}
+      className={`relative w-full rounded-xl border transition-all ${compact ? 'p-3' : 'p-7'} ${drag ? 'border-paper/50 bg-ink-850' : 'border-dashed border-line bg-ink-900/70 hover:bg-ink-900'} ${disabled ? 'pointer-events-none opacity-60':''}`}
+    >
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e=>{ onFiles(e.target.files); e.currentTarget.value=''; }} />
+      <button type="button" onClick={()=>inputRef.current?.click()}
+              className={`flex w-full items-center justify-center gap-3 text-paper/85 hover:text-paper ${compact ? 'text-sm' : 'flex-col py-3 text-base'}`}>
+        {compact ? (
+          <>
+            <span className="text-paper/70">{I.image}</span>
+            <span>Upload another image</span>
+            <span className="text-xs text-paper/35">· or drop one here</span>
+          </>
+        ) : (
+          <>
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 border border-line">{I.upload}</span>
+            <span className="font-display text-lg">Drop an image, or click to upload</span>
+            <span className="text-xs text-paper/45">JPG · PNG · WEBP — the only input GeoSeer accepts</span>
+          </>
+        )}
+      </button>
+
+      {/* Decorative corner crosshairs */}
+      {!compact && <>
+        <span className="pointer-events-none absolute left-3 top-3 h-3 w-3 border-l border-t border-paper/25"></span>
+        <span className="pointer-events-none absolute right-3 top-3 h-3 w-3 border-r border-t border-paper/25"></span>
+        <span className="pointer-events-none absolute left-3 bottom-3 h-3 w-3 border-l border-b border-paper/25"></span>
+        <span className="pointer-events-none absolute right-3 bottom-3 h-3 w-3 border-r border-b border-paper/25"></span>
+      </>}
+    </div>
+  );
+}
+
+/* ---------------- Empty state ---------------- */
+function EmptyState({ onSubmit, disabled }) {
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-16 text-center relative grain">
+      <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-ink-900 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-paper/55">
+        <span className="h-1.5 w-1.5 rounded-full bg-paper/70"></span> Image · to · Location
+      </div>
+      <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full border border-line bg-ink-900 shadow-plate">
+        <span className="text-paper/85">{I.compass}</span>
+      </div>
+      <h1 className="font-display text-4xl leading-tight md:text-5xl">
+        Where was <span className="italic text-paper/85">this</span> taken?
+      </h1>
+      <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-paper/60">
+        Upload a single photograph. GeoSeer reads its visual cues and places a marker on the map with its best estimate of the location.
+      </p>
+      <div className="mt-10 w-full"><UploadDock onSubmit={onSubmit} disabled={disabled} /></div>
+      <p className="mt-7 text-[10px] uppercase tracking-[0.28em] text-paper/30">Image input only · No text required</p>
+    </div>
+  );
+}
+
+/* ---------------- Confidence meter ---------------- */
+function ConfidenceMeter({ value }) {
+  const pct = Math.round(value*100);
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative h-1.5 w-28 overflow-hidden rounded-full bg-ink-800 border border-line">
+        <div className="absolute inset-y-0 left-0 bg-paper/90" style={{ width: `${pct}%` }}></div>
+      </div>
+      <span className="text-[11px] tracking-widest text-paper/65 num">{pct}% conf.</span>
+    </div>
+  );
+}
+
+/* ---------------- Message bubble ---------------- */
+function MessageBubble({ message, theme, onThemeChange }) {
+  const [copied, setCopied] = useState(false);
+
+  if (message.role === 'user') {
+    return (
+      <div className="flex justify-end animate-fade-in-up">
+        <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-ink-800 p-1.5 border border-line">
+          {message.imageDataUrl && (
+            <img src={message.imageDataUrl} alt="Submitted reference" className="max-h-80 w-auto rounded-xl object-cover" />
+          )}
+          <div className="px-2 py-1 text-[10px] uppercase tracking-[0.22em] text-paper/40 text-right">Field exhibit · {new Date(message.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Assistant
+  const themes = [{v:'dark',l:'Dark'},{v:'light',l:'Light'},{v:'satellite',l:'Satellite'},{v:'terrain',l:'Terrain'}];
+
+  return (
+    <div className="flex justify-start animate-fade-in-up">
+      <div className="flex max-w-[92%] gap-3 w-full">
+        <div className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-800 border border-line text-paper/85">{I.compass}</div>
+        <div className="flex-1 space-y-3 rounded-2xl rounded-tl-sm bg-ink-900 px-5 py-4 border border-line shadow-plate relative grain">
+          {message.pending && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 py-1 text-sm text-paper/70">
+                <span className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-paper/80"></span>
+                  <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-paper/80" style={{animationDelay:'0.15s'}}></span>
+                  <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-paper/80" style={{animationDelay:'0.30s'}}></span>
+                </span>
+                <span className="italic">{message.text || 'Analyzing visual cues…'}</span>
+              </div>
+              <div className="space-y-2">
+                {[0,1,2].map(i => (
+                  <div key={i} className="h-3 w-full rounded shimmer-bg animate-shimmer bg-ink-800" style={{ width: `${[92,76,58][i]}%` }}></div>
+                ))}
+                <div className="h-40 w-full rounded shimmer-bg animate-shimmer bg-ink-800 mt-3"></div>
+              </div>
+            </div>
+          )}
+
+          {message.text && !message.pending && (
+            <p className="text-[15px] leading-relaxed text-paper/90">{message.text}</p>
+          )}
+
+          {message.guess && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.28em] text-paper/45 mb-0.5">Estimate</div>
+                  <h3 className="font-display text-xl leading-tight">{message.guess.placeName}</h3>
+                  <p className="text-xs text-paper/55 italic">{message.guess.country}</p>
+                </div>
+                <ConfidenceMeter value={message.guess.confidence} />
+              </div>
+
+              {/* Cue chips */}
+              <div className="flex flex-wrap gap-1.5">
+                {(message.guess.cues || []).map(c => (
+                  <span key={c} className="text-[10px] uppercase tracking-[0.18em] rounded border border-line bg-ink-850 px-2 py-1 text-paper/65">{c}</span>
+                ))}
+              </div>
+
+              <p className="text-[14px] italic leading-relaxed text-paper/70 border-l border-line pl-3">
+                "{message.guess.reasoning}"
+              </p>
+
+              <MapView guess={message.guess} theme={theme} height={320} />
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2 text-xs text-paper/65">
+                  <span className="text-paper/40">{I.pin}</span>
+                  <span className="num font-mono text-[12px]">{message.guess.primary.lat.toFixed(4)}, {message.guess.primary.lng.toFixed(4)}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${message.guess.primary.lat.toFixed(6)}, ${message.guess.primary.lng.toFixed(6)}`);
+                      setCopied(true); setTimeout(()=>setCopied(false), 1500);
+                    }}
+                    className="grid h-6 w-6 place-items-center rounded text-paper/55 hover:bg-ink-800 hover:text-paper" aria-label="Copy coordinates">
+                    {copied ? I.check : I.copy}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 rounded-md border border-line bg-ink-850 p-0.5">
+                  {themes.map(opt => (
+                    <button key={opt.v} onClick={()=>onThemeChange(opt.v)}
+                            className={`rounded px-2.5 py-1 text-[11px] tracking-wide transition-colors ${theme===opt.v ? 'bg-ink-700 text-paper':'text-paper/55 hover:text-paper'}`}>{opt.l}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Hook: state + actions ---------------- */
+function useGeoSeer() {
+  const [conversations, setConversations] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [user, setUser] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  useEffect(() => {
+    const convs = storage.load(KEYS.conv, []);
+    const aid = storage.raw(KEYS.active);
+    const u = storage.load(KEYS.user) || { name:'Researcher', email:'guest@geoseer.local', initials:'RS' };
+    setConversations(convs);
+    setActiveId(aid && convs.find(c=>c.id===aid) ? aid : (convs[0]?.id ?? null));
+    setUser(u);
+    storage.save(KEYS.user, u);
+  }, []);
+
+  useEffect(() => storage.save(KEYS.conv, conversations), [conversations]);
+  useEffect(() => storage.rawSet(KEYS.active, activeId || null), [activeId]);
+
+  const active = useMemo(()=>conversations.find(c=>c.id===activeId) || null, [conversations, activeId]);
+
+  const newConversation = useCallback(() => {
+    const c = { id: uid(), title:'New investigation', createdAt:Date.now(), updatedAt:Date.now(), messages:[] };
+    setConversations(p => [c, ...p]); setActiveId(c.id); return c.id;
+  }, []);
+
+  const selectConversation = useCallback(id => setActiveId(id), []);
+  const deleteConversation = useCallback(id => {
+    setConversations(prev => {
+      const next = prev.filter(c=>c.id!==id);
+      if (activeId === id) setActiveId(next[0]?.id ?? null);
+      return next;
+    });
+  }, [activeId]);
+  const renameConversation = useCallback((id, title) => {
+    setConversations(prev => prev.map(c => c.id===id ? {...c, title: title || c.title, updatedAt:Date.now()} : c));
+  }, []);
+
+  const submitImage = useCallback(async (file) => {
+    const dataUrl = await fileToDataUrl(file);
+    let cid = activeId;
+    if (!cid) {
+      cid = uid();
+      const c = { id: cid, title:'New investigation', createdAt:Date.now(), updatedAt:Date.now(), messages:[] };
+      setConversations(p => [c, ...p]); setActiveId(cid);
+    }
+    const userMsg = { id: uid(), role:'user', createdAt:Date.now(), imageDataUrl: dataUrl };
+    const pending = { id: uid(), role:'assistant', createdAt:Date.now(), pending:true, text:'Analyzing visual cues…' };
+    setConversations(prev => prev.map(c => c.id===cid ? {
+      ...c, updatedAt:Date.now(),
+      messages:[...c.messages, userMsg, pending],
+      title: c.messages.length===0 ? `Image · ${new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'})}` : c.title,
+    } : c));
+    setAnalyzing(true);
+    await new Promise(r => setTimeout(r, 1400 + Math.random()*900));
+    const guess = generateMockGuess(dataUrl.slice(-200) + file.size);
+    setConversations(prev => prev.map(c => c.id===cid ? {
+      ...c, updatedAt:Date.now(),
+      messages: c.messages.map(m => m.id===pending.id ? {...m, pending:false, text:undefined, guess} : m)
+    } : c));
+    setAnalyzing(false);
+  }, [activeId]);
+
+  const signOut = useCallback(() => {
+    storage.clear();
+    setConversations([]); setActiveId(null);
+    const u = { name:'Researcher', email:'guest@geoseer.local', initials:'RS' };
+    setUser(u); storage.save(KEYS.user, u);
+  }, []);
+
+  return { conversations, active, activeId, user, analyzing, newConversation, selectConversation, deleteConversation, renameConversation, submitImage, signOut };
+}
+
+/* ---------------- App ---------------- */
+function App() {
+  const g = useGeoSeer();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mapTheme, setMapTheme] = useState(() => storage.raw(KEYS.theme)?.replaceAll('"','') || 'dark');
+
+  useEffect(() => storage.rawSet(KEYS.theme, mapTheme), [mapTheme]);
+  useEffect(() => { if (window.matchMedia('(max-width: 768px)').matches) setSidebarOpen(false); }, []);
+
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    const el = scrollRef.current; if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior:'smooth' });
+  }, [g.active?.messages.length, g.analyzing]);
+
+  return (
+    <div className="flex h-dvh w-full overflow-hidden bg-ink-900 text-paper">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={()=>setSidebarOpen(false)}
+        conversations={g.conversations}
+        activeId={g.activeId}
+        user={g.user}
+        onSelect={(id)=>{ g.selectConversation(id); if (window.matchMedia('(max-width: 768px)').matches) setSidebarOpen(false); }}
+        onNew={()=>{ g.newConversation(); if (window.matchMedia('(max-width: 768px)').matches) setSidebarOpen(false); }}
+        onDelete={g.deleteConversation}
+        onRename={g.renameConversation}
+        onSignOut={g.signOut}
+      />
+
+      <main className={`relative flex flex-1 flex-col transition-[margin] duration-300 ${sidebarOpen ? 'md:ml-72':'ml-0'}`}>
+        {/* Header */}
+        <header className="flex h-14 items-center justify-between border-b border-line px-3 md:px-6 hairline bg-ink-900/80 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <button onClick={()=>setSidebarOpen(v=>!v)} className="grid h-9 w-9 place-items-center rounded-md text-paper/75 hover:bg-ink-800 hover:text-paper" aria-label={sidebarOpen ? 'Hide menu':'Show menu'}>{I.menu}</button>
+            <div className="flex items-baseline gap-2">
+              <h1 className="font-display text-[15px] tracking-wide">{g.active?.title || 'GeoSeer'}</h1>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-paper/35">— Atlas</span>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center gap-3 text-[10px] uppercase tracking-[0.22em] text-paper/40">
+            <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70 animate-pulse-soft"></span> Demo · Mock estimator</span>
+            <span className="h-3 w-px bg-line"></span>
+            <span>Image-to-Location · Thesis prototype</span>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          {(!g.active || g.active.messages.length === 0)
+            ? <EmptyState onSubmit={g.submitImage} disabled={g.analyzing} />
+            : (
+              <div className="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 md:px-6">
+                {g.active.messages.map(m => (
+                  <MessageBubble key={m.id} message={m} theme={mapTheme} onThemeChange={setMapTheme} />
+                ))}
+              </div>
+            )
+          }
+        </div>
+
+        {g.active && g.active.messages.length > 0 && (
+          <div className="border-t border-line bg-ink-900/90 backdrop-blur px-4 py-4 md:px-6">
+            <div className="mx-auto max-w-3xl">
+              <UploadDock onSubmit={g.submitImage} disabled={g.analyzing} compact />
+              <p className="mt-2 text-center text-[10px] uppercase tracking-[0.28em] text-paper/30">GeoSeer accepts images only · Mock estimates for thesis demo</p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import delete, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.conversation import Conversation
@@ -85,11 +86,20 @@ async def IncrementConversation(
 async def DeleteConversation(conversation_id: int, session:AsyncSession)->bool:
     if conversation_id is None:
         return False
-    
+
+    reply_stmt = delete(Reply).where(
+        Reply.image_id.in_(
+            select(Image.image_id).where(Image.conversation_id == conversation_id)
+        )
+    )
+    await session.execute(reply_stmt)
+
+    image_stmt = delete(Image).where(Image.conversation_id == conversation_id)
+    await session.execute(image_stmt)
+
     stmt = delete(Conversation).where(Conversation.conversation_id == conversation_id)
     result = await session.execute(stmt)
-   
-    
+
     await session.commit()
     return result.rowcount > 0
     
@@ -97,7 +107,44 @@ async def GetUserConvos(user_id: int, session: AsyncSession) -> list[Conversatio
     if user_id is None or session is None:
         return []
     
-    stmt = select(Conversation).where(Conversation.user_id == user_id).order_by(Conversation.created_at.desc())
+    stmt = (
+        select(Conversation)
+        .where(Conversation.user_id == user_id)
+        .options(selectinload(Conversation.images).selectinload(Image.reply))
+        .order_by(Conversation.created_at.desc())
+    )
     result = await session.execute(stmt)
     conversations = result.scalars().all()
+
+    for conversation in conversations:
+        if conversation.images is not None:
+            conversation.images.sort(key=lambda image: image.uploaded_at or datetime.min)
+
     return conversations
+
+
+async def GetConversationById(
+    conversation_id: int,
+    user_id: int,
+    session: AsyncSession,
+) -> Optional[Conversation]:
+    if conversation_id is None or user_id is None or session is None:
+        return None
+
+    stmt = (
+        select(Conversation)
+        .where(
+            Conversation.conversation_id == conversation_id,
+            Conversation.user_id == user_id,
+        )
+        .options(
+            selectinload(Conversation.images).selectinload(Image.reply)
+        )
+    )
+    result = await session.execute(stmt)
+    conversation = result.scalar_one_or_none()
+
+    if conversation is not None and conversation.images is not None:
+        conversation.images.sort(key=lambda image: image.uploaded_at or datetime.min)
+
+    return conversation
