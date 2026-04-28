@@ -10,7 +10,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("AUTH_SECRET", "CHANGE_ME_FASTAPI_USERS_SECRET")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
+ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60)
 
 
 pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
