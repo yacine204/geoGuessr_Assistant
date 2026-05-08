@@ -144,7 +144,7 @@ pip install -r requirements.txt
 ```bash
 # backend
 cd backend
-uvicorn main:app --reload
+uvicorn main:app --reload --reload-dir . --reload-dir ../assistant_logic
 
 # frontend
 cd frontend
