@@ -1,8 +1,7 @@
 # GeoGuessr Location Assistant (Final Year Project, Submitted in partial fulfilment of the requirements for the degree of Licence in Computer Science)
 
 Street-level image analysis pipeline that extracts geographic clues from images
-(road signs, architecture, language) using YOLOv8, OCR, and OpenStreetMap
-to infer country and region.
+(road signs, language/text) using YOLOv8, OCR, and OpenStreetMAP, achieving **74.8% accuracy** in predicting correct city.
 
 https://github.com/user-attachments/assets/d70b2dbb-d351-4f3a-bd26-0f363e6a90f6
 
