@@ -3,6 +3,8 @@
 Street-level image analysis pipeline that extracts geographic clues from images
 (road signs, language/text) using YOLOv8, OCR, and OpenStreetMAP, achieving **74.8% accuracy** in predicting correct city.
 
+**[View the Project Wiki / Landing Page](https://yacine204.github.io/geoGuessr_assistant)**
+
 https://github.com/user-attachments/assets/d70b2dbb-d351-4f3a-bd26-0f363e6a90f6
 
 ![showcase](showcase.png)
