@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGuessr Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Georgia", "Garamond", serif;
+            background-color: #1a1a1b;
+            color: #e4e6eb;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .mw-page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .mw-content-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mw-sidebar {
+            width: 200px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        @media (max-width: 768px) {
+            .mw-page-container {
+                flex-direction: column;
+            }
+            .mw-sidebar {
+                width: 100%;
+            }
+        }
+
+        h1 {
+            font-family: "Georgia", serif;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1.3;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        h2 {
+            font-family: "Georgia", serif;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 25px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        h3 {
+            font-family: "Georgia", serif;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        .mw-sidebar {
+            background-color: #2a2a2b;
+            border: 1px solid #444;
+            border-radius: 2px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .toc {
+            background-color: #2a2a2b;
+            border: 1px solid #444;
+            padding: 15px 20px;
+            border-radius: 2px;
+            margin: 15px 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .toc li {
+            margin: 5px 0;
+            margin-left: 20px;
+        }
+
+        a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        a:visited {
+            color: #bc8ef7;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code, pre {
+            background-color: #2a2a2b;
+            border: 1px solid #444;
+            border-radius: 2px;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+            padding: 2px 5px;
+            color: #e4e6eb;
+        }
+
+        pre {
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+            line-height: 1.4;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px 0;
+            border: 1px solid #444;
+            border-radius: 2px;
+        }
+
+        video {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 20px 0;
+            border: 1px solid #444;
+        }
+
+        .infobox {
+            background-color: #2a2a2b;
+            border: 1px solid #444;
+            border-radius: 2px;
+            padding: 20px;
+            margin: 15px 0 15px 20px;
+            float: right;
+            width: 280px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .infobox {
+                float: none;
+                width: 100%;
+                margin: 15px 0;
+            }
+        }
+
+        .infobox-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .infobox-data {
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        .accent-stat {
+            font-size: 18px;
+            font-weight: bold;
+            color: #58a6ff;
+            margin: 5px 0;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #444;
+            margin: 20px 0;
+        }
+
+        .navbox {
+            background-color: #2a2a2b;
+            border: 1px solid #444;
+            border-radius: 2px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .mw-editsection {
+            font-size: 12px;
+            color: #999;
+            margin-left: 10px;
+        }
+
+        .edit-link {
+            color: #58a6ff;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+            border: 1px solid #444;
+        }
+
+        table th, table td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #2a2a2b;
+            font-weight: bold;
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="mw-page-container">
+        <div class="mw-content-main">
+            <h1>GeoGuessr Assistant</h1>
+            
+            <div class="infobox">
+                <div class="infobox-title">GeoGuessr Assistant</div>
+                <div class="infobox-data">
+                    <strong>Type:</strong> Computer Vision System
+                </div>
+                <div class="infobox-data">
+                    <strong>Primary Language:</strong> Python
+                </div>
+                <div class="infobox-data">
+                    <strong>Published:</strong> 2026
+                </div>
+                <div class="infobox-data">
+                    <strong>Accuracy:</strong>
+                    <div class="accent-stat">74.8%</div>
+                    <small>City-level predictions</small>
+                </div>
+                <div class="infobox-data">
+                    <strong>Repository:</strong>
+                    <a href="https://github.com/yacine204/geoGuessr_assistant">GitHub</a>
+                </div>
+            </div>
+
+            <p><strong>GeoGuessr Assistant</strong> is a computer vision system that analyzes Google Street View images and predicts geographic locations. The system achieves 74.8% accuracy at the city level by analyzing road signs, text, and other visual elements through machine learning.</p>
+
+            <h2>Contents</h2>
+            <div class="toc">
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#capabilities">Capabilities</a></li>
+                    <li><a href="#methodology">Methodology</a></li>
+                    <li><a href="#architecture">Architecture</a></li>
+                    <li><a href="#getting-started">Getting Started</a></li>
+                    <li><a href="#future-development">Future Development</a></li>
+                    <li><a href="#see-also">See Also</a></li>
+                </ul>
+            </div>
+
+            <h2 id="overview">Overview</h2>
+            <p>This project was developed as a final-year computer science dissertation (3rd year Licence). The system represents an attempt to solve the geolocation problem—determining where a photograph was taken based purely on visual information—through intelligent analysis of road signage and textual elements within Street View images.</p>
+            
+            <p>Rather than making direct predictions, the system employs a novel approach based on elimination logic, progressively narrowing the search space by identifying regional and national characteristics visible in the imagery.</p>
+
+            <h2 id="capabilities">Key Capabilities</h2>
+            <ul>
+                <li><strong>Road Sign Detection:</strong> Fine-tuned YOLOv8m model with three classification categories (MUTCD, Vienna Convention, Ambiguous)</li>
+                <li><strong>Optical Character Recognition:</strong> EasyOCR with integrated language detection</li>
+                <li><strong>Probabilistic Reasoning:</strong> Custom elimination and probability logic</li>
+                <li><strong>Geographic Integration:</strong> OpenStreetMap integration via Overpass and Nominatim APIs</li>
+                <li><strong>Local Execution:</strong> Runs entirely offline without cloud dependencies</li>
+                <li><strong>Performance:</strong> Fast inference suitable for real-time predictions</li>
+            </ul>
+
+            <h2 id="methodology">Methodology</h2>
+
+            <h3>Detection Pipeline</h3>
+            <p>The system processes Street View images through the following pipeline:</p>
+            <ol>
+                <li>Image acquisition and preprocessing</li>
+                <li>Road sign detection using fine-tuned YOLOv8m</li>
+                <li>Text extraction via EasyOCR with language identification</li>
+                <li>Geographic reasoning through elimination</li>
+                <li>OpenStreetMap validation</li>
+                <li>Location prediction with confidence scoring</li>
+            </ol>
+
+            <img src="general_pipeline.png" alt="System Pipeline Diagram">
+
+            <h3>Sign Classification</h3>
+            <p>The YOLO model classifies detected signs into three categories to infer geographic region:</p>
+            <ul>
+                <li><strong>MUTCD Signs:</strong> Indicates North American locations (United States, Canada)</li>
+                <li><strong>Vienna Convention Signs:</strong> Indicates European and international locations</li>
+                <li><strong>Ambiguous Signs:</strong> Requires additional contextual analysis</li>
+            </ul>
+
+            <h2 id="architecture">Architecture</h2>
+
+            <h3>Component Overview</h3>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Technology</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td>Object Detection</td>
+                    <td>YOLOv8m (fine-tuned)</td>
+                    <td>Road sign detection</td>
+                </tr>
+                <tr>
+                    <td>Text Recognition</td>
+                    <td>EasyOCR</td>
+                    <td>Extract text from images</td>
+                </tr>
+                <tr>
+                    <td>Language Detection</td>
+                    <td>langdetect</td>
+                    <td>Identify text language</td>
+                </tr>
+                <tr>
+                    <td>Geographic Data</td>
+                    <td>OpenStreetMap (Nominatim, Overpass)</td>
+                    <td>Location validation and enrichment</td>
+                </tr>
+            </table>
+
+            <h2 id="getting-started">Getting Started</h2>
+            <p>For detailed installation and usage instructions, see the <a href="https://github.com/yacine204/geoGuessr_assistant">project repository on GitHub</a>.</p>
+
+            <h3>Demo</h3>
+            <p>The following video demonstrates the system in operation:</p>
+            <video width="800" controls>
+                <source src="https://github.com/user-attachments/assets/d70b2dbb-d351-4f3a-bd26-0f363e6a90f6" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+
+            <h2 id="future-development">Future Development</h2>
+            <p>Planned enhancements to the system include:</p>
+            <ul>
+                <li>Vegetation and climate zone detection</li>
+                <li>Building architecture recognition and classification</li>
+                <li>Vehicle model identification for temporal context</li>
+                <li>Additional visual cues (utility poles, road markings, etc.)</li>
+                <li>Improved web interface for accessibility</li>
+                <li>Multi-image analysis for increased accuracy</li>
+            </ul>
+
+            <h2 id="see-also">See Also</h2>
+            <ul>
+                <li><a href="https://www.geoguessr.com/">GeoGuessr</a> – The original game</li>
+                <li><a href="https://github.com/ultralytics/ultralytics">YOLOv8 Documentation</a></li>
+                <li><a href="https://www.openstreetmap.org/">OpenStreetMap</a></li>
+                <li><a href="https://github.com/JaidedAI/EasyOCR">EasyOCR Repository</a></li>
+            </ul>
+
+            <hr>
+
+            <div class="navbox">
+                <strong>Project Repository:</strong> <a class="edit-link" href="https://github.com/yacine204/geoGuessr_assistant">GitHub - yacine204/geoGuessr_assistant</a>
+            </div>
+
+
+        </div>
+
+        <div class="mw-sidebar">
+            <div style="background-color: #2a2a2b; border: 1px solid #444; border-radius: 2px; padding: 15px; margin-bottom: 15px;">
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px;">Quick Links</div>
+                <ul style="list-style: none; margin-left: 0;">
+                    <li style="margin-bottom: 8px;"><a href="#overview">Overview</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#capabilities">Capabilities</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#methodology">Methodology</a></li>
+                    <li style="margin-bottom: 8px;"><a href="#architecture">Architecture</a></li>
+                </ul>
+            </div>
+
+            <div style="background-color: #2a2a2b; border: 1px solid #444; border-radius: 2px; padding: 15px;">
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px;">External Links</div>
+                <ul style="list-style: none; margin-left: 0;">
+                    <li style="margin-bottom: 8px;"><a href="https://github.com/yacine204/geoGuessr_assistant">GitHub Repository</a></li>
+                    <li style="margin-bottom: 8px;"><a href="https://www.geoguessr.com/">GeoGuessr Game</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

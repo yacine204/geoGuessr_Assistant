@@ -63,18 +63,18 @@ function Login() {
 
         // Map backend errors to user-friendly messages
         if (err.response.status === 401) {
-          setError("❌ Invalid email or password. Please try again.")
+          setError("Invalid email or password. Please try again.")
         } else if (detail.includes("Email already in use")) {
-          setError("📧 This email is already registered. Try logging in or reset your password.")
+          setError("This email is already registered. Try logging in or reset your password.")
         } else if (detail.includes("Pseudo already in use")) {
-          setError("👤 This username is already taken. Please choose another.")
+          setError("This username is already taken. Please choose another.")
         } else {
-          setError(`⚠️ ${detail}`)
+          setError(`${detail}`)
         }
       } else if (err.request) {
-        setError("🌐 Unable to connect to server. Please check your connection.")
+        setError("Unable to connect to server. Please check your connection.")
       } else {
-        setError("❌ An unexpected error occurred. Please try again.")
+        setError("An unexpected error occurred. Please try again.")
       }
     }
   }
@@ -100,7 +100,7 @@ function Login() {
           {/* Success Message */}
           {success && (
             <div className={`${styles.message} ${styles.success}`}>
-              <span>✅ {success}</span>
+              <span>{success}</span>
             </div>
           )}
 

@@ -52,7 +52,7 @@ def _haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> f
 
 
 def filter_qualified_detections(clusters: List[LocationCluster],
-                                max_distance_km: float = 300,
+                                max_distance_km: float = 500,
                                 same_continent_only: bool = True) -> List[QualifiedLocation]:
     if not clusters:
         return []
