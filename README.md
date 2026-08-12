@@ -85,6 +85,17 @@ at the end we get this form of result:
 }
 ```
 
+### Project Structure 
+
+| Path | Purpose |
+|------|---------|
+|`assistant_logic/`| Contains the hybrid AI pipeline core logic (data types, helpers, rules, model weights)|
+|`backend/`| FastAPI service exposing assistant_logic as an API|
+|`frontend/`| Chatbot UI (ReactJS application)|
+|`docs/`| Training results for each iteration during the project development|
+|`data_prep/`| Scripts to prep data for model training (fine-tuning)|
+|`training_results_for_repo/`| Results of training and application for demo purposes|
+
 ### Training And Dataprep
 
 i came across the idea of mixing 2 labeled datasets of 2 seperate models into one. mutcd is basically how america intended it to be and vienna how europe did it so i combined these datasets:
