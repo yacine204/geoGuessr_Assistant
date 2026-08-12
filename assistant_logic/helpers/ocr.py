@@ -51,8 +51,8 @@ def _get_easyocr_reader():
     """Get or create EasyOCR reader instance."""
     global _easyocr_reader
     if _easyocr_reader is None:
-        print("Loading EasyOCR model (first time only)...")
-        _easyocr_reader = easyocr.Reader(['en'], gpu=False)
+        print("Loading EasyOCR model...")
+        _easyocr_reader = easyocr.Reader('en', gpu=False)
     return _easyocr_reader
 
 
@@ -60,7 +60,7 @@ def _get_paddle_reader():
     """Get or create PaddleOCR reader instance."""
     global _paddle_reader
     if _paddle_reader is None:
-        print("Loading PaddleOCR model (first time only)...")
+        print("Loading PaddleOCR model...")
         # Disable ONNX conversion to avoid compatibility issues
         import os
         os.environ['PADDLE_DISABLE_OPERATORS_PASS'] = '1'

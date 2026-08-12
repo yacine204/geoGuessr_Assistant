@@ -128,7 +128,7 @@ we evaluate YOLO using box precision, recall, F1, mAP50, mAP50-95 and the confus
 ### Installation
 ```bash
 # clone the repo
-git clone https://github.com/yourusername/geoguessr_assistant.git
+git clone https://github.com/yacine204/geoguessr_assistant.git
 cd geoguessr_assistant
 
 # create and activate venv

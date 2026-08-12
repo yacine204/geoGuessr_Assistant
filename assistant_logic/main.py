@@ -1,8 +1,3 @@
-"""
-GeoGuessr Assistant - Main Pipeline
-Detects road signs, extracts text, and predicts geolocation.
-"""
-
 from ultralytics import YOLO
 from helpers.file_parsing import detect_signs
 from helpers.ocr import extract_text, clean_ocr_blocks
@@ -25,26 +20,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Load model once (cache it)
+
 _model = None
 MODEL_PATH = Path(__file__).resolve().parent / "yolo_pts" / "best2.pt"
 
 def get_model():
-    """Load YOLO model (singleton pattern to avoid reloading)."""
     global _model
     if _model is None:
         _model = YOLO(str(MODEL_PATH))
     return _model
 
 
-# ============================================================================
-# PIPELINE STAGES
-# ============================================================================
-
 def stage_1_detect_road_signs(image_path: str) -> Dict:
     """
-    Stage 1: Detect road signs using YOLO.
-    
     Args:
         image_path: Path to input image
         
@@ -85,9 +73,9 @@ def stage_1_detect_road_signs(image_path: str) -> Dict:
                         dominant_detected = class_name
                     dominant_conf = conf
 
-        logger.info(f"  ✓ Found {len(sign_boxes)} road signs")
+        logger.info(f"Found {len(sign_boxes)} road signs")
     else:
-        logger.warning("  ⚠ No road signs detected")
+        logger.warning("No road signs detected")
     
     return {
         "convention": yolo_result.convention,
@@ -104,8 +92,6 @@ def stage_1_detect_road_signs(image_path: str) -> Dict:
 
 def stage_2_extract_text(image_path: str, sign_boxes: List[Tuple]) -> Dict:
     """
-    Stage 2: Extract text from image using OCR (inside and outside sign boxes).
-    
     Args:
         image_path: Path to input image
         sign_boxes: List of sign bounding boxes from stage 1
@@ -128,13 +114,13 @@ def stage_2_extract_text(image_path: str, sign_boxes: List[Tuple]) -> Dict:
     speed_limits = []
     if ocr_result.road_sign_classification and ocr_result.road_sign_classification.speedlimit_values:
         speed_limits = ocr_result.road_sign_classification.speedlimit_values
-        logger.info(f"  ✓ Speed limits detected: {speed_limits}")
+        logger.info(f"Speed limits detected: {speed_limits}")
     
     search_queries = clean_ocr_blocks(ocr_result.other_text_blocks) if ocr_result.success else []
-    logger.info(f"  ✓ Found {len(search_queries)} search term(s)")
+    logger.info(f"Found {len(search_queries)} search term(s)")
     if ocr_result.success:
-        logger.info(f"  ✓ OCR text (inside signs): {ocr_result.text}")
-        logger.info(f"  ✓ OCR text blocks (outside signs): {ocr_result.other_text_blocks}")
+        logger.info(f"OCR text (inside signs): {ocr_result.text}")
+        logger.info(f"OCR text blocks (outside signs): {ocr_result.other_text_blocks}")
 
     detected_language = None
     if ocr_result.success and ocr_result.text:
@@ -153,8 +139,6 @@ def stage_2_extract_text(image_path: str, sign_boxes: List[Tuple]) -> Dict:
 
 def stage_3_filter_countries(convention: str, ocr_text: str) -> Dict:
     """
-    Stage 3: Filter countries based on road sign convention and OCR language.
-    
     Args:
         convention: Road sign convention (MUTCD, Vienna, Ambiguous)
         ocr_text: OCR extracted text for language detection
@@ -174,7 +158,7 @@ def stage_3_filter_countries(convention: str, ocr_text: str) -> Dict:
     )
     
     top_countries = [c.country for c in country_result.filtered_countries[:10]]
-    logger.info(f"  ✓ Top countries: {', '.join(top_countries[:3])}")
+    logger.info(f" Top countries: {', '.join(top_countries[:3])}")
     
     return {
         "filtered_countries": country_result.filtered_countries,
@@ -187,8 +171,6 @@ async def stage_4_nominatim_search(
     top_countries: List[str]
 ) -> Dict:
     """
-    Stage 4: Search for locations using Nominatim.
-    
     Args:
         search_queries: List of text queries from OCR
         top_countries: List of top countries to filter results
@@ -201,7 +183,7 @@ async def stage_4_nominatim_search(
     logger.info("Stage 4: Searching Nominatim for locations")
     
     if not search_queries:
-        logger.warning("  ⚠ No search queries provided")
+        logger.warning("No search queries provided")
         return {"nominatim_results": [], "location_results": []}
     
     clear_search_cache()
@@ -217,7 +199,7 @@ async def stage_4_nominatim_search(
             )
             if results:
                 result = results[0]
-                logger.info(f"  ✓ Found: {result.address}")
+                logger.info(f"Found: {result.address}")
                 nominatim_results.append(result)
                 location_results.append(LocationResult(
                     query=query,
@@ -226,13 +208,13 @@ async def stage_4_nominatim_search(
                     address=result.address
                 ))
             else:
-                logger.warning(f"  ✗ No results for: {query}")
+                logger.warning(f"No results for: {query}")
         except Exception as e:
-            logger.error(f"  ✗ Error searching '{query}': {str(e)}")
+            logger.error(f"Error searching '{query}': {str(e)}")
         
         await asyncio.sleep(0.5)  # Rate limiting
     
-    logger.info(f"  ✓ Found {len(location_results)} location(s)")
+    logger.info(f"Found {len(location_results)} location(s)")
     
     return {
         "nominatim_results": nominatim_results,
@@ -246,8 +228,6 @@ def stage_5_overpass_query(
     speed_limits: List[str]
 ) -> Dict:
     """
-    Stage 5: Query Overpass API to validate and refine geolocation.
-    
     Args:
         location_results: Clustered location results
         nominatim_results: Raw Nominatim results for OSM tag extraction
@@ -263,7 +243,7 @@ def stage_5_overpass_query(
     logger.info("Stage 5: Querying Overpass API for validation")
     
     if not location_results:
-        logger.warning("  ⚠ No locations to query")
+        logger.warning("No locations to query")
         return {
             "overpass_data": None,
             "parsed_results": [],
@@ -276,7 +256,7 @@ def stage_5_overpass_query(
     qualified = filter_qualified_detections(clustered)
     
     if not qualified:
-        logger.warning("  ⚠ No qualified detections after filtering")
+        logger.warning("No qualified detections after filtering")
         return {
             "overpass_data": None,
             "parsed_results": [],
@@ -288,11 +268,11 @@ def stage_5_overpass_query(
     smart_tags = extract_overpass_tags(nominatim_results)
     avg_lat, avg_lon = get_average_safe_coordinate(qualified)
     
-    logger.info(f"  ✓ Query center: ({avg_lat}, {avg_lon})")
-    logger.info(f"  ✓ OSM tags: {smart_tags}")
+    logger.info(f"Query center: ({avg_lat}, {avg_lon})")
+    logger.info(f"OSM tags: {smart_tags}")
     
     if speed_limits:
-        logger.info(f"  ✓ Speed limit hints: {', '.join(speed_limits)} km/h")
+        logger.info(f"Speed limit hints: {', '.join(speed_limits)} km/h")
     
     try:
         overpass_data = query_overpass_api(
@@ -307,9 +287,9 @@ def stage_5_overpass_query(
         parsed_results = []
         if overpass_data and overpass_data.get('elements'):
             parsed_results = parse_overpass_results(overpass_data)
-            logger.info(f"  ✓ Found {len(parsed_results)} OSM features")
+            logger.info(f"Found {len(parsed_results)} OSM features")
         else:
-            logger.info("  ⚠ No OSM features found in area")
+            logger.info("No OSM features found in area")
         
         return {
             "overpass_data": overpass_data,
@@ -318,7 +298,7 @@ def stage_5_overpass_query(
             "center_longitude": avg_lon,
         }
     except Exception as e:
-        logger.error(f"  ✗ Overpass API error: {str(e)}")
+        logger.error(f"Overpass API error: {str(e)}")
         return {
             "overpass_data": None,
             "parsed_results": [],
@@ -327,13 +307,11 @@ def stage_5_overpass_query(
         }
 
 
-# ============================================================================
-# ORCHESTRATION
-# ============================================================================
-
 async def predict(image_path: str) -> Dict:
     """
-    Full prediction pipeline: detect signs → extract text → filter countries → 
+    Full prediction pipeline: detect signs -> 
+    extract text -> 
+    filter countries -> 
     search → validate with Overpass.
     
     Args:
@@ -350,35 +328,26 @@ async def predict(image_path: str) -> Dict:
     logger.info(f"Starting prediction pipeline for {image_path}")
     
     try:
-        # Stage 1: Detect signs
         signs = stage_1_detect_road_signs(image_path)
-        
-        # Stage 2: Extract text
         text = stage_2_extract_text(image_path, signs["boxes"])
-        
-        # Stage 3: Filter countries
         countries = stage_3_filter_countries(signs["convention"], text["text_inside_signs"])
-        
-        # Stage 4: Search Nominatim (async)
         nominatim = await stage_4_nominatim_search(
             text["search_queries"],
             countries["top_countries"]
         )
-        
-        # Stage 5: Query Overpass
         overpass = stage_5_overpass_query(
             nominatim["location_results"],
             nominatim["nominatim_results"],
             text["speed_limits"]
         )
         
-        # Build candidates (max 5)
+
         candidates = [
             {"lat": loc.latitude, "lon": loc.longitude}
             for loc in nominatim["location_results"][:5]
         ]
 
-        # Safe geolocalization from Overpass center (if available)
+
         result = {
             "YOLO_detections": {
                 "dominant_convention": signs["convention"],
@@ -403,10 +372,6 @@ async def predict(image_path: str) -> Dict:
         raise
 
 
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
 if __name__ == "__main__":
     import argparse
     import json
@@ -418,17 +383,16 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", help="Save results to JSON file")
     args = parser.parse_args()
     
-    # Run prediction
+
     result = asyncio.run(predict(args.image))
-    
-    # Print summary
+
     print("\n" + "=" * 70)
     print("PREDICTION RESULT")
     print("=" * 70)
     print(result)
     print("=" * 70)
     
-    # Save if requested
+
     if args.output:
         with open(args.output, "w") as f:
             json.dump(result, f, indent=2)

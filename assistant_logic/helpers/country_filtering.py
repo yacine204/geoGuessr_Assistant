@@ -24,8 +24,6 @@ class CountryFilteringResult:
 
 def initialize_countries(show_details: bool = False) -> List[CountryConfidence]:
     """
-    Stage 1: Initialize countries from distribution.
-    
     Args:
         show_details: Whether to print country details
     
@@ -52,8 +50,6 @@ def filter_by_convention(countries: List[CountryConfidence],
                         convention: str,
                         show_details: bool = False) -> List[CountryConfidence]:
     """
-    Stage 2: Filter countries by road sign convention.
-    
     Args:
         countries: List of countries to filter
         convention: Convention type ('vienna', 'mutcd', or 'hybrid')
@@ -171,33 +167,22 @@ def filter_countries(convention: str,
     
     Returns:
         CountryFilteringResult with filtered countries and metadata
-    
-    Example:
-        # Simple usage
-        result = filter_countries('vienna')
-        
-        # With language
-        result = filter_countries('vienna', ocr_text="Bonjour, bienvenue à Paris", boost_multiplier=3.0)
-        print(result.top_countries[0].country)  # Should be France
     """
     
     print("\n" + "="*70)
     print("COUNTRY FILTERING PIPELINE")
     print("="*70)
     
-    # Stage 1: Initialize
     countries = initialize_countries(show_details=show_details)
     
-    # Stage 2: Filter by convention
     convention_filtered = filter_by_convention(countries, convention, show_details=show_details)
     
-    # Stage 3: Augment by language (if OCR text provided)
     language_result = None
     if ocr_text:
         convention_filtered, language_result = augment_by_language(
             convention_filtered,
             ocr_text,
-            boost_multiplier=boost_multiplier,  # FIXED: Pass proper multiplier here
+            boost_multiplier=boost_multiplier,  
             show_details=show_details
         )
     
