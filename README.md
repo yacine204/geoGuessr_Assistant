@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/d70b2dbb-d351-4f3a-bd26-0f363e6a90f6
 
 ![General pipeline](general_pipeline.png)
 
-The whole logic in the pipeline is eliminating and filtering countries. the elimination system was mostly executed by visual clues that determined were the country follows vienna or mutcd convention (u can check the whole thing here: https://en.wikipedia.org/wiki/Vienna_Convention_on_Road_Signs_and_Signals). this alone can split the whole world on 3 regions but its not equal in terms of clusters or size. we get results of yolo that are in this shape:
+The whole logic in the pipeline is eliminating and filtering countries. the elimination system was mostly executed by visual clues that determined were the country follows vienna or mutcd convention (you can check the whole thing here: https://en.wikipedia.org/wiki/Vienna_Convention_on_Road_Signs_and_Signals). this alone can split the whole world on 3 regions but its not equal in terms of clusters or size. we get results of yolo that are in this shape:
 
 ```bash
 Detected: vienna | conf: 0.85 | box: [1434.0308837890625, 322.5564880371094, 1491.0142822265625, 371.571044921875]
@@ -98,7 +98,7 @@ if class != "yield" or "stop":
     reduce classes to base dataset origin
 ```
 
-basically reduce all classes into one (mutcd/vienna) if the class isnt yield or stop (beceause that sign is common between these two).
+basically reduce all classes into one (mutcd/vienna) if the class isnt yield or stop (because that sign is common between these two).
 
 we evaluate YOLO using box precision, recall, F1, mAP50, mAP50-95 and the confusion matrix to measure both detection quality and class confusion
 
@@ -161,4 +161,6 @@ python main.py <path to ur image>
 
 ```
 ## Model Weights
-you can mine thats in the `assistant_logic/yolo_pts/best2.pt` (set by default).
+you can use the original model for this project thats located in `assistant_logic/yolo_pts/best2.pt` (set by default). 
+
+if you want to use your own model, note that its only purpose here is to detect worldwide road conventions from signs alone.
